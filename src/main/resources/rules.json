@@ -1,0 +1,13 @@
+[
+  {
+    "ruleId": "R-001",
+    "item": "투명 페트병",
+    "region": { "sido": "서울시", "sigungu": "마포구" },
+    "conditions": { "hasLabel": true, "hasCap": true },
+    "verdict": "바로 배출 불가",
+    "requiredAction": "라벨 제거 후 배출",
+    "disposalMethod": "투명 페트병 별도배출",
+    "basis": "서울시 마포구 분리배출 규정",
+    "priority": 1
+  }
+]
