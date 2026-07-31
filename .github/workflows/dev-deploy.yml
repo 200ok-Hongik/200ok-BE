@@ -55,8 +55,8 @@ jobs:
         with:
           aws_access_key: ${{ secrets.AWS_ACTION_ACCESS_KEY_ID }}
           aws_secret_key: ${{ secrets.AWS_ACTION_SECRET_ACCESS_KEY }}
-          application_name: 200ok-BE-dev
-          environment_name: 200ok-BE-dev-env
+          application_name: Ssok-200OK-BE
+          environment_name: Ssok-200OK-BE-env
           version_label: github-action-${{ steps.current-time.outputs.formattedTime }}
           region: ap-northeast-2
           deployment_package: deploy/deploy.zip
