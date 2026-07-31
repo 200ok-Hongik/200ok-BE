@@ -3,15 +3,11 @@ package com.team202ok.demo.recycle.controller;
 import com.team202ok.demo.recycle.dto.AiReq;
 import com.team202ok.demo.recycle.dto.AiRes;
 import com.team202ok.demo.recycle.service.AiAnalysisService;
+import com.team202ok.demo.recycle.service.AiModelClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
@@ -20,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class AiAnalysisController {
 
     private final AiAnalysisService aiAnalysisService;
+    private final AiModelClient aiModelClient;
 
     @PostMapping(value = "/analysis", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     // 변경: ResponseEntity<AiRes> -> ResponseEntity<AiRes.Analyze>
@@ -42,5 +39,13 @@ public class AiAnalysisController {
         return ResponseEntity.ok(
                 aiAnalysisService.processFeedback(request, userId)
         );
+    }
+
+    @GetMapping("/api/ai-server/health")
+    public ResponseEntity<String> checkAiServerHealth() {
+        boolean isHealthy = aiModelClient.checkServerHealth();
+        return isHealthy
+                ? ResponseEntity.ok("AI 서버 정상")
+                : ResponseEntity.status(503).body("AI 서버 응답 없음");
     }
 }

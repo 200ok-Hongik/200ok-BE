@@ -35,7 +35,7 @@ public class AiModelClient {
             Map<String, String> requestBody = Map.of("imageUrl", imageUrl);
 
             return aiServerWebClient.post()
-                    .uri("/api/analyze") // AI 서버의 실제 엔드포인트 경로에 맞게 수정하세요
+                    .uri("/analyze") // AI 서버의 실제 엔드포인트 경로에 맞게 수정하세요
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(AiModelResponse.class)
@@ -71,5 +71,24 @@ public class AiModelClient {
                                 .build()
                 ))
                 .build();
+    }
+
+    public boolean checkServerHealth() {
+        try {
+            log.info("[AI Client] Checking AI server health");
+
+            String response = aiServerWebClient.get()
+                    .uri("/health")
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            log.info("[AI Client] AI server health check success: {}", response);
+            return true;
+
+        } catch (Exception e) {
+            log.error("[AI Client] AI server health check failed: {}", e.getMessage());
+            return false;
+        }
     }
 }
