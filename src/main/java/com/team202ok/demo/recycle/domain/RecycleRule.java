@@ -24,7 +24,7 @@ public class RecycleRule {
     @Column(unique = true)
     private String ruleId;
 
-    private String item;
+    private String itemCode;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "region_id")
@@ -43,11 +43,37 @@ public class RecycleRule {
 
     private int priority;
 
+    public void update(String itemCode,
+                       Region region,
+                       Map<String, Object> conditions,
+                       String verdict,
+                       String requiredAction,
+                       String disposalMethod,
+                       String basis,
+                       int priority) {
+        this.itemCode = itemCode;
+        this.region = region;
+        this.conditions = conditions;
+        this.verdict = verdict;
+        this.requiredAction = requiredAction;
+        this.disposalMethod = disposalMethod;
+        this.basis = basis;
+        this.priority = priority;
+    }
+
     public boolean matches(Map<String, Object> inputConditions) {
         if (conditions == null || conditions.isEmpty()) {
             return true;
         }
         return conditions.entrySet().stream()
-                .allMatch(e -> e.getValue().equals(inputConditions.get(e.getKey())));
+                .allMatch(e -> matchesValue(e.getValue(), inputConditions.get(e.getKey())));
+    }
+
+    private boolean matchesValue(Object expected, Object actual) {
+        if (expected instanceof Boolean expectedBoolean && actual instanceof String actualString) {
+            return expectedBoolean == Boolean.parseBoolean(actualString);
+        }
+
+        return expected.equals(actual);
     }
 }

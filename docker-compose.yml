@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  # MySQL: 핵심 마스터 데이터 관리
+  mysql:
+    image: mysql:8.0
+    container_name: 200ok-ssok
+    ports:
+      - "3309:3306" # 로컬 PC에서는 3307 포트로 접속
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: app_db
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql  # 컨테이너 삭제돼도 데이터 유지
+    restart: unless-stopped
+
+# 데이터 영구 저장을 위한 볼륨 선언
+volumes:
+  mysql_data:

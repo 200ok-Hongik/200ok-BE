@@ -1,0 +1,23 @@
+[
+  {
+    "regionCode": "MAPO_SEOGYO",
+    "guName": "마포구",
+    "dongName": "서교동",
+    "dischargeDays": "월,수,금",
+    "dischargeTime": "18:00~24:00"
+  },
+  {
+    "regionCode": "MAPO_YEONNAM",
+    "guName": "마포구",
+    "dongName": "연남동",
+    "dischargeDays": "화,목,일",
+    "dischargeTime": "18:00~24:00"
+  },
+  {
+    "regionCode": "MAPO_MANGWON",
+    "guName": "마포구",
+    "dongName": "망원동",
+    "dischargeDays": "월,수,금",
+    "dischargeTime": "19:00~24:00"
+  }
+]
