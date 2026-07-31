@@ -41,7 +41,7 @@ public class AiAnalysisController {
         );
     }
 
-    @GetMapping("/api/ai-server/health")
+    @GetMapping("/server/health")
     public ResponseEntity<String> checkAiServerHealth() {
         boolean isHealthy = aiModelClient.checkServerHealth();
         return isHealthy
