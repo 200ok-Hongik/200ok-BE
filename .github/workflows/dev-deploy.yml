@@ -1,6 +1,8 @@
 name: 200ok-BE CI/CD
 
 on:
+  push:
+    branches: [develop]
   pull_request:
     types: [closed]
   workflow_dispatch: # 수동 실행도 가능하도록
@@ -8,7 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'develop'
+    if: github.event_name == 'push' || (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'develop')
 
     steps:
       - name: Checkout
