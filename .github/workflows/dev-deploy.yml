@@ -2,7 +2,7 @@ name: 200ok-BE CI/CD
 
 on:
   push:
-    branches: [develop]
+    branches: [develop] # develop 브랜치에 직접 push해도 배포되도록
   pull_request:
     types: [closed]
   workflow_dispatch: # 수동 실행도 가능하도록
@@ -44,7 +44,7 @@ jobs:
       - name: Generate deployment package
         run: |
           mkdir -p deploy
-          cp build/libs/*.jar deploy/application.jar
+          cp $(ls build/libs/*.jar | grep -v plain) deploy/application.jar
           cp Procfile deploy/Procfile
           cp -r .ebextensions-dev deploy/.ebextensions
           cp -r .platform deploy/.platform
