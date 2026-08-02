@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
@@ -17,6 +18,7 @@ public class AiAnalysisController {
 
     private final AiAnalysisService aiAnalysisService;
     private final AiModelClient aiModelClient;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @PostMapping(value = "/analysis", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     // 변경: ResponseEntity<AiRes> -> ResponseEntity<AiRes.Analyze>
@@ -47,5 +49,19 @@ public class AiAnalysisController {
         return isHealthy
                 ? ResponseEntity.ok("AI 서버 정상")
                 : ResponseEntity.status(503).body("AI 서버 응답 없음");
+    }
+
+
+    @GetMapping("/ai-health")
+    public ResponseEntity<String> testAiServerHealth() {
+        String targetUrl = "http://172.21.240.1:8010/health";
+
+        try {
+            // 외부 AI 서버로 GET 요청 전송
+            ResponseEntity<String> response = restTemplate.getForEntity(targetUrl, String.class);
+            return ResponseEntity.ok("AI 서버 연결 성공! 응답: " + response.getBody());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("AI 서버 연결 실패: " + e.getMessage());
+        }
     }
 }
