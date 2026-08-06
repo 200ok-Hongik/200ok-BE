@@ -1,0 +1,62 @@
+//package com.team202ok.demo.domain.rule.config;
+//
+//import com.fasterxml.jackson.core.type.TypeReference;
+//import com.fasterxml.jackson.databind.ObjectMapper;
+//import com.team202ok.demo.domain.rule.entity.RecycleRule;
+//import com.team202ok.demo.domain.region.entity.Region;
+//import com.team202ok.demo.domain.region.repository.RegionRepository;
+//import com.team202ok.demo.domain.rule.dto.RuleJson;
+//import com.team202ok.demo.domain.rule.repository.RuleRepository;
+//import lombok.RequiredArgsConstructor;
+//import org.springframework.boot.ApplicationArguments;
+//import org.springframework.boot.ApplicationRunner;
+//import org.springframework.core.io.ClassPathResource;
+//import org.springframework.stereotype.Component;
+//
+//import java.util.List;
+//
+//@Component
+//@RequiredArgsConstructor
+//public class RuleJsonInitializer implements ApplicationRunner {
+//
+//    private final RuleRepository ruleRepository;
+//    private final RegionRepository regionRepository;
+//    private final ObjectMapper objectMapper;
+//
+//    @Override
+//    public void run(ApplicationArguments args) throws Exception {
+//        if (ruleRepository.count() > 0) return;
+//
+//        ClassPathResource resource = new ClassPathResource("rules.json");
+//        List<RuleJson> ruleJsonList = objectMapper.readValue(
+//                resource.getInputStream(),
+//                new TypeReference<List<RuleJson>>() {}
+//        );
+//
+//        for (RuleJson ruleJson : ruleJsonList) {
+//            String regionName = ruleJson.getRegion().getSido() + " " + ruleJson.getRegion().getSigungu();
+//
+//            Region region = regionRepository
+//                    .findByRegion(regionName)
+//                    .orElseGet(() -> regionRepository.save(
+//                            Region.builder()
+//                                    .region(regionName)
+//                                    .build()
+//                    ));
+//
+//            ruleRepository.save(
+//                    RecycleRule.builder()
+//                            .ruleId(ruleJson.getRuleId())
+//                            .item(ruleJson.getItem())
+//                            .region(region)
+//                            .conditions(ruleJson.getConditions())
+//                            .verdict(ruleJson.getVerdict())
+//                            .requiredAction(ruleJson.getRequiredAction())
+//                            .disposalMethod(ruleJson.getDisposalMethod())
+//                            .basis(ruleJson.getBasis())
+//                            .priority(ruleJson.getPriority())
+//                            .build()
+//            );
+//        }
+//    }
+//}
