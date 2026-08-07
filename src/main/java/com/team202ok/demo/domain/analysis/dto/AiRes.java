@@ -63,4 +63,26 @@ public final class AiRes {
                 String dischargeTime
         ) {}
     }
+
+    @Builder
+    public record ScanDetail(Long scanId, String imageUrl, Category category,
+                             List<Analyze.ChecklistResult> states, UserResult userResult,
+                             java.time.LocalDateTime createdAt) {
+        @Builder public record Category(Long categoryId, String code, String name, BigDecimal confidence, String source) {}
+        @Builder public record UserResult(Long decisionId, Long categoryId, String source, boolean isPass,
+                                          List<Analyze.ChecklistResult> states) {}
+    }
+
+    @Builder
+    public record ConfirmedResult(Long scanId, ScanDetail.Category category,
+                                  List<Analyze.ChecklistResult> states, boolean isConfirmed, Long decisionId) {}
+
+    @Builder
+    public record DisposalGuideDetail(Long decisionId, Long scanId, ScanDetail.Category category,
+                                      boolean isPass, String guideMessage, String cautionMessage,
+                                      List<GuideCheckItem> checkItems, FinalGuide.ScheduleInfo schedule,
+                                      String finalGuideMessage) {
+        @Builder public record GuideCheckItem(Long checklistId, String checkItemName, String statusValue,
+                                              String guideMessage, boolean isSatisfied) {}
+    }
 }

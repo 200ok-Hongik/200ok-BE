@@ -50,4 +50,9 @@ public class User extends BaseTimeEntity {
     public void updateNotificationEnabled(boolean enabled) {
         this.isNotificationEnabled = enabled;
     }
+
+    public void updateProfile(String name, String profileImageUrl) {
+        this.name = name;
+        this.profileImageUrl = profileImageUrl;
+    }
 }

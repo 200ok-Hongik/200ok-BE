@@ -6,4 +6,7 @@ public final class UserReq {
 
     public record UpdateRegion(Long regionId) {
     }
+
+    public record UpdateProfile(String name, String profileImageUrl) {
+    }
 }

@@ -28,4 +28,24 @@ public class UserServiceImpl implements UserService {
         user.updateRegion(region.getRegionCode());
         return new UserRes(user.getId(), user.getName(), user.getProfileImageUrl(), user.getRegionCode());
     }
+
+    @Override
+    public UserRes.Profile getProfile(Long userId) {
+        User user = findUser(userId);
+        UserRes.Region region = user.getRegionCode() == null ? null : regionRepository.findByRegionCode(user.getRegionCode())
+                .map(r -> new UserRes.Region(r.getId(), r.getSido(), r.getGugun(), r.getDong())).orElse(null);
+        return new UserRes.Profile(user.getId(), user.getName(), user.getProfileImageUrl(), region);
+    }
+
+    @Override
+    public UserRes.Profile updateProfile(Long userId, com.team202ok.demo.domain.user.dto.UserReq.UpdateProfile request) {
+        User user = findUser(userId);
+        user.updateProfile(request.name(), request.profileImageUrl());
+        return getProfile(userId);
+    }
+
+    private User findUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ProjectException(GeneralErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+    }
 }

@@ -29,4 +29,8 @@ public final class AiReq {
                 String statusValue
         ) {}
     }
+
+    public record UpdateResult(Long categoryId, List<ChecklistFeedback> states, String comment) {
+        public record ChecklistFeedback(Long checklistId, String statusValue) {}
+    }
 }

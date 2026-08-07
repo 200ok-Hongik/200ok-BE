@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team202ok.demo.domain.region.dto.RegionScheduleJson;
 import com.team202ok.demo.domain.region.entity.Region;
 import com.team202ok.demo.domain.region.repository.RegionRepository;
+import com.team202ok.demo.domain.region.entity.RegionSchedule;
+import com.team202ok.demo.domain.region.repository.RegionScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 public class RegionScheduleInitializer implements ApplicationRunner {
 
     private final RegionRepository regionRepository;
+    private final RegionScheduleRepository regionScheduleRepository;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -49,29 +52,17 @@ public class RegionScheduleInitializer implements ApplicationRunner {
                             .gugun(json.getGuName())
                             .dong(json.getDongName())
                             .build()));
-            /*
-            RegionSchedule schedule = scheduleRepository.findByRegionCode(json.getRegionCode())
+            RegionSchedule schedule = regionScheduleRepository.findByRegionCode(json.getRegionCode())
                     .map(existing -> {
-                        // 기존 데이터가 있으면 내용 업데이트
-                        existing.update(
-                                json.getGuName(),
-                                json.getDongName(),
-                                json.getDischargeDays(),
-                                json.getDischargeTime()
-                        );
+                        existing.update(json.getDischargeDays(), json.getDischargeTime());
                         return existing;
                     })
                     .orElseGet(() -> RegionSchedule.builder()
-                            // 기존 데이터가 없으면 새로 빌드
                             .regionCode(json.getRegionCode())
-                            .guName(json.getGuName())
-                            .dongName(json.getDongName())
                             .dischargeDays(json.getDischargeDays())
                             .dischargeTime(json.getDischargeTime())
                             .build());
-
-            scheduleRepository.save(schedule);
-            */
+            regionScheduleRepository.save(schedule);
         }
 
         // 4. 삭제 로직 (DB에는 있지만 JSON 파일에는 없는 지역 데이터 삭제)

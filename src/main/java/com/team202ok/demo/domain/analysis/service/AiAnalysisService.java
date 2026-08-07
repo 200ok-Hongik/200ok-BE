@@ -9,4 +9,10 @@ public interface AiAnalysisService {
     AiRes.Analyze analyze(MultipartFile image, Long userId);
 
     AiRes.FinalGuide processFeedback(AiReq.Feedback request, Long userId);
+
+    AiRes.ScanDetail getScan(Long scanId, Long userId);
+
+    AiRes.ConfirmedResult updateResult(Long scanId, AiReq.UpdateResult request, Long userId);
+
+    AiRes.DisposalGuideDetail getDisposalGuide(Long scanId, Long userId);
 }
