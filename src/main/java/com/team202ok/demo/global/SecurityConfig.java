@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -18,6 +19,7 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
     private final KakaoOAuth2UserService kakaoOAuth2UserService;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final AuthCookieService authCookieService;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -25,19 +27,21 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/health",
+                                "/api/auth/**",
                                 "/oauth2/**", "/login/oauth2/**",
                                 "/swagger-ui/**", "/v3/api-docs/**"
                         ).permitAll()
                         .requestMatchers("/api/users/**").authenticated()
                         .anyRequest().permitAll()
                 )
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .oauth2Login(oauth -> oauth
                         .userInfoEndpoint(userInfo -> userInfo.userService(kakaoOAuth2UserService))
                         .successHandler(oAuth2LoginSuccessHandler)
                 )
                 .addFilterBefore(
-                        new JwtAuthenticationFilter(jwtTokenProvider),
+                        new JwtAuthenticationFilter(jwtTokenProvider, authCookieService),
                         UsernamePasswordAuthenticationFilter.class
                 );
 

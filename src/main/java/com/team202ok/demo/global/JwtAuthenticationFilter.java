@@ -19,6 +19,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final AuthCookieService authCookieService;
 
     @Override
     protected void doFilterInternal(
@@ -50,6 +51,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith(BEARER_PREFIX)) {
             return header.substring(BEARER_PREFIX.length());
         }
-        return null;
+        return authCookieService.resolveAccessToken(request);
     }
 }
