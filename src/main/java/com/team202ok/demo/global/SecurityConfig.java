@@ -16,14 +16,26 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final KakaoOAuth2UserService kakaoOAuth2UserService;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/health",
+                                "/oauth2/**", "/login/oauth2/**",
+                                "/swagger-ui/**", "/v3/api-docs/**"
+                        ).permitAll()
+                        .requestMatchers("/api/users/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .csrf(csrf -> csrf.disable())
+                .oauth2Login(oauth -> oauth
+                        .userInfoEndpoint(userInfo -> userInfo.userService(kakaoOAuth2UserService))
+                        .successHandler(oAuth2LoginSuccessHandler)
+                )
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtTokenProvider),
                         UsernamePasswordAuthenticationFilter.class
