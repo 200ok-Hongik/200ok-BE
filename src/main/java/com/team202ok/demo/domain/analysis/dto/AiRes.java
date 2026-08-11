@@ -51,6 +51,8 @@ public final class AiRes {
 
     @Builder
     public record FinalGuide(
+            Long scanResultId,
+            Long decisionId,
             boolean isPass,
             String categoryName,
             String guideMessage,

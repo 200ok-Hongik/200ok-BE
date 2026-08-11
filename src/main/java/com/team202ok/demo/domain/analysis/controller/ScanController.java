@@ -48,7 +48,7 @@ public class ScanController {
         return aiAnalysisService.getDisposalGuide(scanResultId, userId);
     }
 
-    @PostMapping({"/{scanResultId}/comments", "/{scanResultId}/feedback"})
+    @PostMapping("/{scanResultId}/comments")
     @Operation(summary = "AI 분석 의견 등록", description = "AI 분석 결과에 대한 자유 의견을 저장합니다.")
     public ResponseEntity<Void> createFeedback(@Parameter(description = "스캔 결과 ID", example = "1") @PathVariable Long scanResultId,
                                @Parameter(description = "임시 사용자 ID", example = "1") @RequestParam Long userId,

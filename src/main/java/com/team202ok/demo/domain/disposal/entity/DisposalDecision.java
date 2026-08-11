@@ -21,6 +21,9 @@ public class DisposalDecision extends BaseCreatedAtEntity {
     @Column(name = "scan_result_id", nullable = false)
     private Long scanResultId;
 
+    @Column(name = "user_feedback_id", nullable = false)
+    private Long userFeedbackId;
+
     @Column(name = "applied_category_id", nullable = false)
     private Long appliedCategoryId;
 
@@ -34,9 +37,10 @@ public class DisposalDecision extends BaseCreatedAtEntity {
     private String guideSnapshot;
 
     @Builder
-    private DisposalDecision(Long scanResultId, Long appliedCategoryId,
+    private DisposalDecision(Long scanResultId, Long userFeedbackId, Long appliedCategoryId,
                              String categorySource, Boolean isPass, String guideSnapshot) {
         this.scanResultId = scanResultId;
+        this.userFeedbackId = userFeedbackId;
         this.appliedCategoryId = appliedCategoryId;
         this.categorySource = categorySource;
         this.isPass = isPass != null ? isPass : false;
