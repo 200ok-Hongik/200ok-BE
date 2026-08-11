@@ -128,6 +128,7 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
     public AiRes.FinalGuide processFeedback(AiReq.Feedback request, Long userId) {
 
         // 1. 기초 데이터 조회
+        getOwnedScan(request.scanResultId(), userId);
         TrashCategory category = trashCategoryRepository.findByCode(request.categoryCode())
                 .orElseThrow(() -> new CategoryNotFoundException(request.categoryCode()));
 
@@ -216,12 +217,17 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
         TrashCategory category = trashCategoryRepository.findById(ai.getAiCategoryId())
                 .orElseThrow(() -> new CategoryNotFoundException(String.valueOf(ai.getAiCategoryId())));
         AiRes.ScanDetail.UserResult userResult = disposalDecisionRepository.findFirstByScanResultIdOrderByCreatedAtDesc(scanId)
-                .map(d -> AiRes.ScanDetail.UserResult.builder().decisionId(d.getId()).categoryId(d.getAppliedCategoryId())
-                        .source(d.getCategorySource()).isPass(d.getIsPass()).states(userStates(scanId, d.getAppliedCategoryId())).build())
+                .map(d -> {
+                    TrashCategory confirmedCategory = trashCategoryRepository.findById(d.getAppliedCategoryId())
+                            .orElseThrow(() -> new CategoryNotFoundException(String.valueOf(d.getAppliedCategoryId())));
+                    return AiRes.ScanDetail.UserResult.builder().decisionId(d.getId())
+                            .category(category(confirmedCategory, null, d.getCategorySource()))
+                            .isPass(d.getIsPass()).states(userStates(scanId, d.getAppliedCategoryId())).build();
+                })
                 .orElse(null);
-        return AiRes.ScanDetail.builder().scanId(scan.getId()).imageUrl(scan.getImageUrl())
-                .category(category(category, ai.getConfidence(), "AI")).states(aiStates(ai, category.getId()))
-                .userResult(userResult).createdAt(scan.getCreatedAt()).build();
+        return AiRes.ScanDetail.builder().scanResultId(scan.getId()).imageUrl(scan.getImageUrl())
+                .aiCategory(category(category, ai.getConfidence(), "AI")).aiStates(aiStates(ai, category.getId()))
+                .confirmedResult(userResult).createdAt(scan.getCreatedAt()).build();
     }
 
     @Override
@@ -232,10 +238,16 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
         Long categoryId = request.categoryId() == null ? ai.getAiCategoryId() : request.categoryId();
         TrashCategory category = trashCategoryRepository.findById(categoryId)
                 .orElseThrow(() -> new CategoryNotFoundException(String.valueOf(categoryId)));
-        Map<Long, String> statuses = request.states() == null ? Map.of() : request.states().stream()
-                .collect(Collectors.toMap(AiReq.UpdateResult.ChecklistFeedback::checklistId,
-                        AiReq.UpdateResult.ChecklistFeedback::statusValue, (a, b) -> b));
         List<ItemChecklist> checklists = itemChecklistRepository.findByTrashCategoryIdOrderByDisplayOrder(categoryId);
+        Map<Long, String> statuses = new HashMap<>();
+        if (categoryId.equals(ai.getAiCategoryId())) {
+            aiStates(ai, categoryId).stream()
+                    .filter(state -> state.statusValue() != null)
+                    .forEach(state -> statuses.put(state.checklistId(), state.statusValue()));
+        }
+        if (request.states() != null) {
+            request.states().forEach(state -> statuses.put(state.checklistId(), state.statusValue()));
+        }
         validateChecklistIds(statuses, checklists);
         UserFeedback feedback = userFeedbackRepository.save(UserFeedback.builder()
                 .scanResultId(scanId).userCategoryId(categoryId).comment(request.comment()).build());
@@ -246,7 +258,7 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
         String source = categoryId.equals(ai.getAiCategoryId()) ? "AI" : "USER";
         DisposalDecision decision = disposalDecisionRepository.save(DisposalDecision.builder().scanResultId(scanId)
                 .appliedCategoryId(categoryId).categorySource(source).isPass(isPass).guideSnapshot(String.join(" / ", steps)).build());
-        return AiRes.ConfirmedResult.builder().scanId(scanId).category(category(category, null, source))
+        return AiRes.ConfirmedResult.builder().scanResultId(scanId).category(category(category, null, source))
                 .states(userStates(feedback.getId(), checklists, statuses)).isConfirmed(true).decisionId(decision.getId()).build();
     }
 
@@ -267,11 +279,21 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
         AiRes.FinalGuide.ScheduleInfo schedule = user.getRegionCode() == null ? null : regionScheduleRepository.findByRegionCode(user.getRegionCode())
                 .map(s -> AiRes.FinalGuide.ScheduleInfo.builder().dischargeDays(s.getDischargeDays()).dischargeTime(s.getDischargeTime()).build()).orElse(null);
         String message = decision.getGuideSnapshot();
-        if (schedule != null) message += (message.isBlank() ? "" : " 후 ") + schedule.dischargeDays() + " " + schedule.dischargeTime() + "에 배출해 주세요.";
-        return AiRes.DisposalGuideDetail.builder().decisionId(decision.getId()).scanId(scanId)
+        if (schedule != null) message += (message.isBlank() ? "" : " 조치한 후, ") + schedule.dischargeDays() + " " + schedule.dischargeTime() + "에 배출해 주세요.";
+        return AiRes.DisposalGuideDetail.builder().decisionId(decision.getId()).scanResultId(scanId)
                 .category(category(category, null, decision.getCategorySource())).isPass(decision.getIsPass())
                 .guideMessage(guide == null ? "" : guide.getGuideMessage()).cautionMessage(guide == null ? null : guide.getCautionMessage())
                 .checkItems(items).schedule(schedule).finalGuideMessage(message).build();
+    }
+
+    @Override
+    public void createComment(Long scanId, String comment, Long userId) {
+        getOwnedScan(scanId, userId);
+        userFeedbackRepository.save(UserFeedback.builder()
+                .scanResultId(scanId)
+                .userCategoryId(null)
+                .comment(comment)
+                .build());
     }
 
     private ScanResult getOwnedScan(Long scanId, Long userId) {
@@ -282,7 +304,7 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
 
     private AiRes.ScanDetail.Category category(TrashCategory category, BigDecimal confidence, String source) {
         return AiRes.ScanDetail.Category.builder().categoryId(category.getId()).code(category.getCode()).name(category.getName())
-                .confidence(confidence).source(source).build();
+                .confidence(confidence).categorySource(source).build();
     }
 
     private List<AiRes.Analyze.ChecklistResult> aiStates(AiScanResult ai, Long categoryId) {

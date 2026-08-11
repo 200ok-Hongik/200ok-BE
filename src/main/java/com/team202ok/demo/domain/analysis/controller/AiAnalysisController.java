@@ -29,7 +29,7 @@ public class AiAnalysisController {
             @RequestPart("image") MultipartFile image,
             @Parameter(description = "임시 사용자 ID (카카오 로그인 연동 전)", example = "1") @RequestParam Long userId
     ) {
-        return ResponseEntity.ok(
+        return ResponseEntity.status(201).body(
                 aiAnalysisService.analyze(image, userId)
         );
     }

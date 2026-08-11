@@ -45,10 +45,12 @@ public class HomeServiceImpl implements HomeService {
         String categoryName = trashCategoryRepository.findById(calendar.getTrashCategoryId())
                 .map(category -> category.getName())
                 .orElse("알 수 없는 품목");
-        return new HomeRes.TodaySchedule(calendar.getId(), categoryName, calendar.getScheduledAt(), calendar.getIsCompleted());
+        return new HomeRes.TodaySchedule(calendar.getId(), calendar.getDisposalDecisionId(), calendar.getTrashCategoryId(),
+                categoryName, calendar.getScheduledAt(), calendar.getIsCompleted());
     }
 
     private HomeRes.NotificationItem toNotification(Notification notification) {
-        return new HomeRes.NotificationItem(notification.getId(), notification.getTitle(), notification.getContent(), notification.getCreatedAt());
+        return new HomeRes.NotificationItem(notification.getId(), notification.getCalendarId(), notification.getTitle(),
+                notification.getContent(), notification.getCreatedAt());
     }
 }

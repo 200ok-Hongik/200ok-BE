@@ -65,20 +65,20 @@ public final class AiRes {
     }
 
     @Builder
-    public record ScanDetail(Long scanId, String imageUrl, Category category,
-                             List<Analyze.ChecklistResult> states, UserResult userResult,
+    public record ScanDetail(Long scanResultId, String imageUrl, Category aiCategory,
+                             List<Analyze.ChecklistResult> aiStates, UserResult confirmedResult,
                              java.time.LocalDateTime createdAt) {
-        @Builder public record Category(Long categoryId, String code, String name, BigDecimal confidence, String source) {}
-        @Builder public record UserResult(Long decisionId, Long categoryId, String source, boolean isPass,
+        @Builder public record Category(Long categoryId, String code, String name, BigDecimal confidence, String categorySource) {}
+        @Builder public record UserResult(Long decisionId, Category category, boolean isPass,
                                           List<Analyze.ChecklistResult> states) {}
     }
 
     @Builder
-    public record ConfirmedResult(Long scanId, ScanDetail.Category category,
+    public record ConfirmedResult(Long scanResultId, ScanDetail.Category category,
                                   List<Analyze.ChecklistResult> states, boolean isConfirmed, Long decisionId) {}
 
     @Builder
-    public record DisposalGuideDetail(Long decisionId, Long scanId, ScanDetail.Category category,
+    public record DisposalGuideDetail(Long decisionId, Long scanResultId, ScanDetail.Category category,
                                       boolean isPass, String guideMessage, String cautionMessage,
                                       List<GuideCheckItem> checkItems, FinalGuide.ScheduleInfo schedule,
                                       String finalGuideMessage) {

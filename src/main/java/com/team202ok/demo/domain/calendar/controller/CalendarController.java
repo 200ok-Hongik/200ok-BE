@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -22,7 +24,9 @@ public class CalendarController {
 
     @PostMapping
     @Operation(summary = "배출 일정 저장", description = "최종 분리배출 판단을 캘린더에 저장합니다. scheduledAt이 없으면 지역 배출 요일과 시간으로 자동 계산합니다.")
-    public CalendarRes create(@Parameter(description = "임시 사용자 ID", example = "1") @RequestParam Long userId, @RequestBody CalendarReq request) { return calendarService.create(userId, request); }
+    public ResponseEntity<CalendarRes> create(@Parameter(description = "임시 사용자 ID", example = "1") @RequestParam Long userId, @RequestBody CalendarReq request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(calendarService.create(userId, request));
+    }
 
     @GetMapping
     @Operation(summary = "기간별 배출 일정 조회", description = "시작일과 종료일 사이의 사용자의 배출 일정을 조회합니다.")

@@ -4,6 +4,8 @@ import com.team202ok.demo.domain.calendar.dto.CalendarReq;
 import com.team202ok.demo.domain.calendar.dto.CalendarRes;
 import com.team202ok.demo.domain.calendar.entity.UserCalendar;
 import com.team202ok.demo.domain.calendar.repository.UserCalendarRepository;
+import com.team202ok.demo.domain.analysis.entity.ScanResult;
+import com.team202ok.demo.domain.analysis.repository.ScanResultRepository;
 import com.team202ok.demo.domain.disposal.entity.DisposalDecision;
 import com.team202ok.demo.domain.disposal.repository.DisposalDecisionRepository;
 import com.team202ok.demo.domain.disposal.repository.TrashCategoryRepository;
@@ -35,11 +37,17 @@ public class CalendarServiceImpl implements CalendarService {
     private final TrashCategoryRepository trashCategoryRepository;
     private final UserRepository userRepository;
     private final RegionScheduleRepository regionScheduleRepository;
+    private final ScanResultRepository scanResultRepository;
 
     @Override
     public CalendarRes create(Long userId, CalendarReq request) {
         DisposalDecision decision = disposalDecisionRepository.findById(request.disposalDecisionId())
                 .orElseThrow(() -> new ProjectException(GeneralErrorCode.NOT_FOUND, "분리배출 판단을 찾을 수 없습니다."));
+        ScanResult scan = scanResultRepository.findById(decision.getScanResultId())
+                .orElseThrow(() -> new ProjectException(GeneralErrorCode.NOT_FOUND, "스캔 결과를 찾을 수 없습니다."));
+        if (!scan.getUserId().equals(userId)) {
+            throw new ProjectException(GeneralErrorCode.FORBIDDEN);
+        }
         LocalDateTime scheduledAt = request.scheduledAt() != null ? request.scheduledAt() : nextSchedule(userId);
         return toResponse(userCalendarRepository.save(UserCalendar.builder()
                 .userId(userId).disposalDecisionId(decision.getId()).trashCategoryId(decision.getAppliedCategoryId())
@@ -48,6 +56,9 @@ public class CalendarServiceImpl implements CalendarService {
 
     @Override
     public List<CalendarRes> getCalendars(Long userId, LocalDate startDate, LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            throw new ProjectException(GeneralErrorCode.BAD_REQUEST, "시작일은 종료일보다 늦을 수 없습니다.");
+        }
         return userCalendarRepository.findByUserIdAndScheduledAtBetweenOrderByScheduledAtAsc(userId,
                         startDate.atStartOfDay(), endDate.plusDays(1).atStartOfDay())
                 .stream().map(this::toResponse).toList();

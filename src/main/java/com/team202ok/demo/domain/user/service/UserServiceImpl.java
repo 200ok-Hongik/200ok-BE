@@ -19,14 +19,14 @@ public class UserServiceImpl implements UserService {
     private final RegionRepository regionRepository;
 
     @Override
-    public UserRes updateRegion(Long userId, Long regionId) {
+    public UserRes.Profile updateRegion(Long userId, Long regionId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ProjectException(GeneralErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다."));
         Region region = regionRepository.findById(regionId)
                 .orElseThrow(() -> new ProjectException(GeneralErrorCode.NOT_FOUND, "지역을 찾을 수 없습니다."));
 
         user.updateRegion(region.getRegionCode());
-        return new UserRes(user.getId(), user.getName(), user.getProfileImageUrl(), user.getRegionCode());
+        return getProfile(userId);
     }
 
     @Override
