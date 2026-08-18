@@ -15,6 +15,7 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOrigins(
                         "https://ssok.store",
+                        "https://dev.ssok.store",
                         "http://localhost:3000",      // 로컬 테스트용
                         "http://localhost:5173",      // 로컬 테스트용(Vite)
                         "https://essential-family-display.ngrok-free.dev" //ngrok
