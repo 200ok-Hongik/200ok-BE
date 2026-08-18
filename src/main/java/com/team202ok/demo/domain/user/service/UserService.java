@@ -4,7 +4,7 @@ import com.team202ok.demo.domain.user.dto.UserRes;
 import com.team202ok.demo.domain.user.dto.UserReq;
 
 public interface UserService {
-    UserRes updateRegion(Long userId, Long regionId);
+    UserRes.Profile updateRegion(Long userId, Long regionId);
 
     UserRes.Profile getProfile(Long userId);
 

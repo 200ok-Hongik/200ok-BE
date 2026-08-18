@@ -18,6 +18,23 @@ services:
       - mysql_data:/var/lib/mysql  # 컨테이너 삭제돼도 데이터 유지
     restart: unless-stopped
 
+  # Redis: AI 분석 작업 상태 및 임시 데이터 관리
+  redis:
+    image: redis:7-alpine
+    container_name: 200ok-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
 # 데이터 영구 저장을 위한 볼륨 선언
 volumes:
   mysql_data:
+  redis_data:

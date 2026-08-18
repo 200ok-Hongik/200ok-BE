@@ -15,4 +15,6 @@ public interface AiAnalysisService {
     AiRes.ConfirmedResult updateResult(Long scanId, AiReq.UpdateResult request, Long userId);
 
     AiRes.DisposalGuideDetail getDisposalGuide(Long scanId, Long userId);
+
+    void createComment(Long scanId, String comment, Long userId);
 }

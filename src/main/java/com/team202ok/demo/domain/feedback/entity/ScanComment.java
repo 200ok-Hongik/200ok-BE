@@ -1,8 +1,13 @@
 package com.team202ok.demo.domain.feedback.entity;
 
 import com.team202ok.demo.global.entity.BaseCreatedAtEntity;
-
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,9 +15,9 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
-@Table(name = "user_feedbacks")
+@Table(name = "scan_comments")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UserFeedback extends BaseCreatedAtEntity {
+public class ScanComment extends BaseCreatedAtEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,16 +26,17 @@ public class UserFeedback extends BaseCreatedAtEntity {
     @Column(name = "scan_result_id", nullable = false)
     private Long scanResultId;
 
-    @Column(name = "corrected_category_id")
-    private Long correctedCategoryId;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
-    @Column(name = "comment", columnDefinition = "TEXT")
+    @Lob
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String comment;
 
     @Builder
-    private UserFeedback(Long scanResultId, Long correctedCategoryId, String comment) {
+    private ScanComment(Long scanResultId, Long userId, String comment) {
         this.scanResultId = scanResultId;
-        this.correctedCategoryId = correctedCategoryId;
+        this.userId = userId;
         this.comment = comment;
     }
 }

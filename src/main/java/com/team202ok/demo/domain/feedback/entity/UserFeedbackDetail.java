@@ -24,13 +24,13 @@ public class UserFeedbackDetail extends BaseCreatedAtEntity {
     @Column(name = "checklist_id", nullable = false)
     private Long checklistId;
 
-    @Column(name = "status_value", nullable = false, length = 100)
-    private String statusValue;
+    @Column(name = "corrected_status_value", nullable = false, length = 100)
+    private String correctedStatusValue;
 
     @Builder
-    private UserFeedbackDetail(Long userFeedbackId, Long checklistId, String statusValue) {
+    private UserFeedbackDetail(Long userFeedbackId, Long checklistId, String correctedStatusValue) {
         this.userFeedbackId = userFeedbackId;
         this.checklistId = checklistId;
-        this.statusValue = statusValue;
+        this.correctedStatusValue = correctedStatusValue;
     }
 }

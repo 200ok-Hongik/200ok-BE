@@ -23,7 +23,7 @@ public class UserController {
 
     @PatchMapping("/me/region")
     @Operation(summary = "기본 지역 설정", description = "사용자의 기본 분리배출 지역을 설정하거나 변경합니다.")
-    public UserRes updateRegion(
+    public UserRes.Profile updateRegion(
             @Parameter(hidden = true) @AuthenticationPrincipal Long userId,
             @RequestBody UserReq.UpdateRegion request
     ) {

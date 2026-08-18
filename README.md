@@ -8,6 +8,7 @@
 - `KAKAO_REST_API_KEY`: 카카오 앱의 REST API 키
 - `KAKAO_REST_API_SECRET`: 카카오 앱의 Client Secret
 - `KAKAO_REDIRECT_URI`: 선택 사항. 기본값은 `{baseUrl}/login/oauth2/code/kakao`
+- `AI_SERVER_URL`: AI 서버 Base URL. 기본값은 `https://two00ok-ai.onrender.com`
 - `JWT_SECRET_KEY`: 32바이트 이상의 JWT 서명 키
 
 카카오 개발자 콘솔의 Redirect URI에도 실제 서버 주소의
