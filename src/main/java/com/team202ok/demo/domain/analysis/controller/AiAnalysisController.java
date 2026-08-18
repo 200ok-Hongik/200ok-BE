@@ -57,9 +57,9 @@ public class AiAnalysisController {
     }
 
 
-    @GetMapping("/ai-health")
-    @Operation(summary = "AI 서버 상태 확인 (별칭)", description = "/server/health와 동일한 호환용 엔드포인트입니다.")
-    public ResponseEntity<String> testAiServerHealth() {
-        return checkAiServerHealth();
-    }
+//    @GetMapping("/ai-health")
+//    @Operation(summary = "AI 서버 상태 확인 (별칭)", description = "/server/health와 동일한 호환용 엔드포인트입니다.")
+//    public ResponseEntity<String> testAiServerHealth() {
+//        return checkAiServerHealth();
+//    }
 }
