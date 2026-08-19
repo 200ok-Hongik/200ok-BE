@@ -9,4 +9,7 @@ import java.util.List;
 public interface UserCalendarRepository extends JpaRepository<UserCalendar, Long> {
     List<UserCalendar> findByUserIdAndScheduledAtBetweenOrderByScheduledAtAsc(
             Long userId, LocalDateTime start, LocalDateTime end);
+
+    List<UserCalendar> findByScheduledAtGreaterThanEqualAndScheduledAtLessThanAndIsCompletedFalse(
+            LocalDateTime start, LocalDateTime end);
 }

@@ -11,7 +11,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Table(name = "notifications")
+@Table(name = "notifications", uniqueConstraints =
+        @UniqueConstraint(name = "uk_notifications_calendar_id", columnNames = "calendar_id"))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Notification extends BaseCreatedAtEntity {
     @Id
@@ -21,6 +22,7 @@ public class Notification extends BaseCreatedAtEntity {
     @Column(nullable = false)
     private Long userId;
 
+    @Column(name = "calendar_id")
     private Long calendarId;
 
     @Column(nullable = false, length = 100)
@@ -41,6 +43,10 @@ public class Notification extends BaseCreatedAtEntity {
         this.title = title;
         this.content = content;
         this.scheduledAt = scheduledAt;
+        this.sentAt = sentAt;
+    }
+
+    public void markSent(LocalDateTime sentAt) {
         this.sentAt = sentAt;
     }
 }
