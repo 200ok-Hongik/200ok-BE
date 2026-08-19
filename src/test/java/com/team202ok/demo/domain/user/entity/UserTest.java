@@ -19,4 +19,15 @@ class UserTest {
         assertThat(user.getName()).isEqualTo("새 이름");
         assertThat(user.getProfileImageUrl()).isEqualTo("https://example.com/old.jpg");
     }
+
+    @Test
+    void notificationCanBeDisabledAndEnabled() {
+        User user = User.builder().kakaoId("notification-user").build();
+
+        assertThat(user.getIsNotificationEnabled()).isTrue();
+        user.updateNotificationEnabled(false);
+        assertThat(user.getIsNotificationEnabled()).isFalse();
+        user.updateNotificationEnabled(true);
+        assertThat(user.getIsNotificationEnabled()).isTrue();
+    }
 }

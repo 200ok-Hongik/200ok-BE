@@ -34,13 +34,21 @@ public class UserServiceImpl implements UserService {
         User user = findUser(userId);
         UserRes.Region region = user.getRegionCode() == null ? null : regionRepository.findByRegionCode(user.getRegionCode())
                 .map(r -> new UserRes.Region(r.getId(), r.getSido(), r.getGugun(), r.getDong())).orElse(null);
-        return new UserRes.Profile(user.getId(), user.getName(), user.getProfileImageUrl(), region);
+        return new UserRes.Profile(user.getId(), user.getName(), user.getProfileImageUrl(), region,
+                Boolean.TRUE.equals(user.getIsNotificationEnabled()));
     }
 
     @Override
     public UserRes.Profile updateProfile(Long userId, com.team202ok.demo.domain.user.dto.UserReq.UpdateProfile request) {
         User user = findUser(userId);
         user.updateProfile(request.name(), request.profileImageUrl());
+        return getProfile(userId);
+    }
+
+    @Override
+    public UserRes.Profile updateNotification(Long userId, boolean enabled) {
+        User user = findUser(userId);
+        user.updateNotificationEnabled(enabled);
         return getProfile(userId);
     }
 

@@ -9,4 +9,6 @@ public interface UserService {
     UserRes.Profile getProfile(Long userId);
 
     UserRes.Profile updateProfile(Long userId, UserReq.UpdateProfile request);
+
+    UserRes.Profile updateNotification(Long userId, boolean enabled);
 }
