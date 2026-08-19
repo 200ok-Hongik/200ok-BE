@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.util.List;
 
@@ -22,13 +23,13 @@ public class HomeController {
 
     @GetMapping
     @Operation(summary = "홈 요약 조회", description = "오늘의 배출 일정과 최근 알림 목록을 함께 조회합니다.")
-    public HomeRes.Summary getSummary(@Parameter(description = "임시 사용자 ID", example = "1") @RequestParam Long userId) {
+    public HomeRes.Summary getSummary(@Parameter(hidden = true) @AuthenticationPrincipal Long userId) {
         return homeService.getSummary(userId);
     }
 
     @GetMapping("/today")
     @Operation(summary = "오늘의 배출 일정 조회", description = "오늘 예정된 배출 일정 목록을 조회합니다.")
-    public List<HomeRes.TodaySchedule> getTodaySchedules(@Parameter(description = "임시 사용자 ID", example = "1") @RequestParam Long userId) {
+    public List<HomeRes.TodaySchedule> getTodaySchedules(@Parameter(hidden = true) @AuthenticationPrincipal Long userId) {
         return homeService.getTodaySchedules(userId);
     }
 }

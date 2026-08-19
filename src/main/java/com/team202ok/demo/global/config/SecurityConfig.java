@@ -35,11 +35,13 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/health",
                                 "/api/auth/**",
+                                "/api/ai/server/health",
+                                "/api/regions/**",
+                                "/api/trash-categories/**",
                                 "/oauth2/**", "/login/oauth2/**",
                                 "/swagger-ui/**", "/v3/api-docs/**"
                         ).permitAll()
-                        .requestMatchers("/api/users/**").authenticated()
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 )
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())

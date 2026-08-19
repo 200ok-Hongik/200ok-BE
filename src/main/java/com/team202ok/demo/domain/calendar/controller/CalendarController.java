@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -24,13 +25,13 @@ public class CalendarController {
 
     @PostMapping
     @Operation(summary = "배출 일정 저장", description = "최종 분리배출 판단을 캘린더에 저장합니다. scheduledAt이 없으면 지역 배출 요일과 시간으로 자동 계산합니다.")
-    public ResponseEntity<CalendarRes> create(@Parameter(description = "임시 사용자 ID", example = "1") @RequestParam Long userId, @RequestBody CalendarReq request) {
+    public ResponseEntity<CalendarRes> create(@Parameter(hidden = true) @AuthenticationPrincipal Long userId, @RequestBody CalendarReq request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(calendarService.create(userId, request));
     }
 
     @GetMapping
     @Operation(summary = "기간별 배출 일정 조회", description = "시작일과 종료일 사이의 사용자의 배출 일정을 조회합니다.")
-    public List<CalendarRes> getCalendars(@Parameter(description = "임시 사용자 ID", example = "1") @RequestParam Long userId,
+    public List<CalendarRes> getCalendars(@Parameter(hidden = true) @AuthenticationPrincipal Long userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return calendarService.getCalendars(userId, startDate, endDate);
@@ -38,9 +39,9 @@ public class CalendarController {
 
     @GetMapping("/{calendarId}")
     @Operation(summary = "배출 일정 상세 조회", description = "특정 캘린더 일정의 품목과 예정 시간을 조회합니다.")
-    public CalendarRes getCalendar(@Parameter(description = "임시 사용자 ID", example = "1") @RequestParam Long userId, @Parameter(description = "캘린더 ID", example = "1") @PathVariable Long calendarId) { return calendarService.getCalendar(userId, calendarId); }
+    public CalendarRes getCalendar(@Parameter(hidden = true) @AuthenticationPrincipal Long userId, @Parameter(description = "캘린더 ID", example = "1") @PathVariable Long calendarId) { return calendarService.getCalendar(userId, calendarId); }
 
     @PatchMapping("/{calendarId}/complete")
     @Operation(summary = "배출 완료 처리", description = "선택한 배출 일정을 완료 상태로 변경합니다.")
-    public CalendarRes complete(@Parameter(description = "임시 사용자 ID", example = "1") @RequestParam Long userId, @Parameter(description = "캘린더 ID", example = "1") @PathVariable Long calendarId) { return calendarService.complete(userId, calendarId); }
+    public CalendarRes complete(@Parameter(hidden = true) @AuthenticationPrincipal Long userId, @Parameter(description = "캘린더 ID", example = "1") @PathVariable Long calendarId) { return calendarService.complete(userId, calendarId); }
 }

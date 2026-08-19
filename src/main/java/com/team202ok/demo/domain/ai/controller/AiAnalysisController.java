@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,7 +28,7 @@ public class AiAnalysisController {
     // 변경: ResponseEntity<AiRes> -> ResponseEntity<AiRes.Analyze>
     public ResponseEntity<AiRes.Analyze> analyze(
             @RequestPart("image") MultipartFile image,
-            @Parameter(description = "임시 사용자 ID (카카오 로그인 연동 전)", example = "1") @RequestParam Long userId
+            @Parameter(hidden = true) @AuthenticationPrincipal Long userId
     ) {
         return ResponseEntity.status(201).body(
                 aiAnalysisService.analyze(image, userId)
@@ -39,7 +40,7 @@ public class AiAnalysisController {
     // 변경: ResponseEntity<?> -> ResponseEntity<AiRes.FinalGuide>
     public ResponseEntity<AiRes.FinalGuide> submitFeedback(
             @RequestBody AiReq.Feedback request, // 주석 해제 및 AiReq.Feedback으로 타입 지정
-            @Parameter(description = "임시 사용자 ID (카카오 로그인 연동 전)", example = "1") @RequestParam Long userId
+            @Parameter(hidden = true) @AuthenticationPrincipal Long userId
     ) {
         // 서비스의 processFeedback 메서드를 호출하고 그 결과를 바로 리턴합니다.
         return ResponseEntity.ok(
