@@ -1,7 +1,7 @@
 package com.team202ok.demo.global.config;
 
-import com.team202ok.demo.domain.analysis.entity.*;
-import com.team202ok.demo.domain.analysis.repository.*;
+import com.team202ok.demo.domain.ai.entity.*;
+import com.team202ok.demo.domain.ai.repository.*;
 import com.team202ok.demo.domain.disposal.entity.*;
 import com.team202ok.demo.domain.disposal.repository.*;
 import com.team202ok.demo.domain.user.entity.User;
