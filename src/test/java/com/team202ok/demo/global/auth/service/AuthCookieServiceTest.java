@@ -1,4 +1,6 @@
-package com.team202ok.demo.global;
+package com.team202ok.demo.global.auth.service;
+
+import com.team202ok.demo.global.auth.jwt.JwtProperties;
 
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;

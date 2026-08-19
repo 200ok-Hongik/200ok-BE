@@ -1,8 +1,8 @@
 package com.team202ok.demo.domain.analysis.service;
 
 import com.team202ok.demo.domain.analysis.dto.AiModelResponse;
-import com.team202ok.demo.global.exception.GeneralErrorCode;
-import com.team202ok.demo.global.exception.ProjectException;
+import com.team202ok.demo.global.exception.code.GeneralErrorCode;
+import com.team202ok.demo.global.exception.custom.ProjectException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

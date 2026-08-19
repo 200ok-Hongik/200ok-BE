@@ -1,4 +1,4 @@
-package com.team202ok.demo.global.exception;
+package com.team202ok.demo.global.exception.code;
 
 import org.springframework.http.HttpStatus;
 

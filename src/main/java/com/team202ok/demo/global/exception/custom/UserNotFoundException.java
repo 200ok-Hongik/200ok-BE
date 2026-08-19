@@ -1,4 +1,4 @@
-package com.team202ok.demo.global.exception;
+package com.team202ok.demo.global.exception.custom;
 
 public class UserNotFoundException extends RuntimeException {
     public UserNotFoundException(String message) {

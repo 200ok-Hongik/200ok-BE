@@ -1,4 +1,4 @@
-package com.team202ok.demo.global;
+package com.team202ok.demo.global.health;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,6 +1,6 @@
 package com.team202ok.demo.domain.analysis.service;
 
-import com.team202ok.demo.global.exception.ProjectException;
+import com.team202ok.demo.global.exception.custom.ProjectException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;

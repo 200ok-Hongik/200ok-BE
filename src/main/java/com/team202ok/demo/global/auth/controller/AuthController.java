@@ -1,4 +1,7 @@
-package com.team202ok.demo.global;
+package com.team202ok.demo.global.auth.controller;
+
+import com.team202ok.demo.global.auth.jwt.JwtTokenProvider;
+import com.team202ok.demo.global.auth.service.AuthCookieService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

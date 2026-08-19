@@ -1,4 +1,4 @@
-package com.team202ok.demo.global.exception;
+package com.team202ok.demo.global.exception.custom;
 
 public class CategoryNotFoundException extends RuntimeException {
     public CategoryNotFoundException(String categoryCode) {

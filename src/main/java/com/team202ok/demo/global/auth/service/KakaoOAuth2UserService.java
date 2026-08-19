@@ -1,4 +1,4 @@
-package com.team202ok.demo.global;
+package com.team202ok.demo.global.auth.service;
 
 import com.team202ok.demo.domain.user.entity.User;
 import com.team202ok.demo.domain.user.repository.UserRepository;

@@ -1,4 +1,11 @@
-package com.team202ok.demo.global;
+package com.team202ok.demo.global.config;
+
+import com.team202ok.demo.global.auth.handler.OAuth2LoginSuccessHandler;
+import com.team202ok.demo.global.auth.jwt.JwtAuthenticationFilter;
+import com.team202ok.demo.global.auth.jwt.JwtProperties;
+import com.team202ok.demo.global.auth.jwt.JwtTokenProvider;
+import com.team202ok.demo.global.auth.service.AuthCookieService;
+import com.team202ok.demo.global.auth.service.KakaoOAuth2UserService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

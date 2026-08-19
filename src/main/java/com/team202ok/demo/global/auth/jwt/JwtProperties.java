@@ -1,4 +1,4 @@
-package com.team202ok.demo.global;
+package com.team202ok.demo.global.auth.jwt;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

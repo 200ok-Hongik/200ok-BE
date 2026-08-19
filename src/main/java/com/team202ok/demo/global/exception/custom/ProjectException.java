@@ -1,4 +1,6 @@
-package com.team202ok.demo.global.exception;
+package com.team202ok.demo.global.exception.custom;
+
+import com.team202ok.demo.global.exception.code.BaseErrorCode;
 
 import lombok.Getter;
 

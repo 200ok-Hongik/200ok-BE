@@ -1,4 +1,4 @@
-package com.team202ok.demo.global;
+package com.team202ok.demo.global.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;

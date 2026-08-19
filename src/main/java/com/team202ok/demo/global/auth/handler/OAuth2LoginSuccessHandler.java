@@ -1,4 +1,7 @@
-package com.team202ok.demo.global;
+package com.team202ok.demo.global.auth.handler;
+
+import com.team202ok.demo.global.auth.jwt.JwtTokenProvider;
+import com.team202ok.demo.global.auth.service.AuthCookieService;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +15,7 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+
 @Component
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {

@@ -1,4 +1,4 @@
-package com.team202ok.demo.global;
+package com.team202ok.demo.global.health;
 
 import org.junit.jupiter.api.Test;
 

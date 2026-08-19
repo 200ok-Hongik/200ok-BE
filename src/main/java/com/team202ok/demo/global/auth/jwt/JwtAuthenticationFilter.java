@@ -1,4 +1,6 @@
-package com.team202ok.demo.global;
+package com.team202ok.demo.global.auth.jwt;
+
+import com.team202ok.demo.global.auth.service.AuthCookieService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
