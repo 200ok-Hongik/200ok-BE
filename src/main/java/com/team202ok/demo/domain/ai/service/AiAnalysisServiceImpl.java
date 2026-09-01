@@ -52,6 +52,7 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
     private final RegionScheduleRepository regionScheduleRepository;
 
     @Override
+    @Transactional(Transactional.TxType.NOT_SUPPORTED)
     public AiRes.Analyze analyze(MultipartFile image, Long userId) {
 
         // 1. 이미지 업로드
