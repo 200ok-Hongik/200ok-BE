@@ -1,8 +1,7 @@
 package com.team202ok.demo.domain.rule.entity;
 
-import com.team202ok.demo.domain.region.entity.Region;
-
 import com.team202ok.demo.global.converter.JsonMapConverter;
+import com.team202ok.demo.domain.region.entity.Region;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,8 +27,12 @@ public class RecycleRule {
 
     private String itemCode;
 
+    @Column(name = "region_id")
+    private Long regionId;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "region_id")
+    @JoinColumn(name = "region_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_rule_region"))
     private Region region;
 
     @Convert(converter = JsonMapConverter.class)
@@ -46,7 +49,7 @@ public class RecycleRule {
     private int priority;
 
     public void update(String itemCode,
-                       Region region,
+                       Long regionId,
                        Map<String, Object> conditions,
                        String verdict,
                        String requiredAction,
@@ -54,7 +57,7 @@ public class RecycleRule {
                        String basis,
                        int priority) {
         this.itemCode = itemCode;
-        this.region = region;
+        this.regionId = regionId;
         this.conditions = conditions;
         this.verdict = verdict;
         this.requiredAction = requiredAction;

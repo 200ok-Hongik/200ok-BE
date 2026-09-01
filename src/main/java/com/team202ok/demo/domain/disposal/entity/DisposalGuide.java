@@ -21,6 +21,11 @@ public class DisposalGuide extends BaseTimeEntity {
     @Column(name = "trash_category_id", nullable = false)
     private Long trashCategoryId;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "trash_category_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_disposal_guides_category"))
+    private TrashCategory trashCategory;
+
     @Column(name = "guide_message", nullable = false, columnDefinition = "TEXT")
     private String guideMessage;
 

@@ -1,6 +1,7 @@
 package com.team202ok.demo.domain.notification.entity;
 
 import com.team202ok.demo.global.entity.BaseTimeEntity;
+import com.team202ok.demo.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -19,6 +20,11 @@ public class PushDevice extends BaseTimeEntity {
 
     @Column(name = "user_id", nullable = false)
     private Long userId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_push_devices_user"))
+    private User user;
 
     @Column(nullable = false, length = 500)
     private String token;

@@ -1,6 +1,7 @@
 package com.team202ok.demo.domain.user.entity;
 
 import com.team202ok.demo.global.entity.BaseTimeEntity;
+import com.team202ok.demo.domain.region.entity.Region;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -29,6 +30,12 @@ public class User extends BaseTimeEntity {
 
     @Column(name = "region_code", length = 50)
     private String regionCode;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "region_code", referencedColumnName = "region_code",
+            insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_users_region_code"))
+    private Region region;
 
     @Column(name = "is_notification_enabled", nullable = false)
     private Boolean isNotificationEnabled;

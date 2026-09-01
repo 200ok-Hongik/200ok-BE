@@ -21,6 +21,11 @@ public class ItemChecklist extends BaseCreatedAtEntity {
     @Column(name = "trash_category_id", nullable = false)
     private Long trashCategoryId;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "trash_category_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_item_checklists_category"))
+    private TrashCategory trashCategory;
+
     @Column(name = "check_item_name", nullable = false, length = 100)
     private String checkItemName;
 

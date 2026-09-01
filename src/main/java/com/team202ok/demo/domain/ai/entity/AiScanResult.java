@@ -1,6 +1,7 @@
 package com.team202ok.demo.domain.ai.entity;
 
 import com.team202ok.demo.global.entity.BaseCreatedAtEntity;
+import com.team202ok.demo.domain.disposal.entity.TrashCategory;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -23,8 +24,18 @@ public class AiScanResult extends BaseCreatedAtEntity {
     @Column(name = "scan_result_id", nullable = false)
     private Long scanResultId;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "scan_result_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_ai_scan_results_scan"))
+    private ScanResult scanResult;
+
     @Column(name = "ai_category_id", nullable = false)
     private Long aiCategoryId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ai_category_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_ai_scan_results_category"))
+    private TrashCategory aiCategory;
 
     @Column(precision = 5, scale = 4)
     private BigDecimal confidence;

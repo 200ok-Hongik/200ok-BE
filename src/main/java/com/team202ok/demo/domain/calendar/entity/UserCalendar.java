@@ -1,6 +1,9 @@
 package com.team202ok.demo.domain.calendar.entity;
 
 import com.team202ok.demo.global.entity.BaseTimeEntity;
+import com.team202ok.demo.domain.disposal.entity.DisposalDecision;
+import com.team202ok.demo.domain.disposal.entity.TrashCategory;
+import com.team202ok.demo.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -18,14 +21,29 @@ public class UserCalendar extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_user_calendars_user"))
+    private User user;
+
+    @Column(name = "disposal_decision_id", nullable = false)
     private Long disposalDecisionId;
 
-    @Column(nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "disposal_decision_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_user_calendars_decision"))
+    private DisposalDecision disposalDecision;
+
+    @Column(name = "trash_category_id", nullable = false)
     private Long trashCategoryId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "trash_category_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_user_calendars_category"))
+    private TrashCategory trashCategory;
 
     @Column(nullable = false)
     private LocalDateTime scheduledAt;

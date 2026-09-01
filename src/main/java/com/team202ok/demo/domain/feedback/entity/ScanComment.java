@@ -1,13 +1,9 @@
 package com.team202ok.demo.domain.feedback.entity;
 
 import com.team202ok.demo.global.entity.BaseCreatedAtEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
-import jakarta.persistence.Table;
+import com.team202ok.demo.domain.ai.entity.ScanResult;
+import com.team202ok.demo.domain.user.entity.User;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -26,8 +22,18 @@ public class ScanComment extends BaseCreatedAtEntity {
     @Column(name = "scan_result_id", nullable = false)
     private Long scanResultId;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "scan_result_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_scan_comments_scan"))
+    private ScanResult scanResult;
+
     @Column(name = "user_id", nullable = false)
     private Long userId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_scan_comments_user"))
+    private User user;
 
     @Lob
     @Column(nullable = false, columnDefinition = "TEXT")

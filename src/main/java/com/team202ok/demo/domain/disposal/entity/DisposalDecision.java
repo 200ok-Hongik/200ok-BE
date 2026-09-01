@@ -1,6 +1,8 @@
 package com.team202ok.demo.domain.disposal.entity;
 
 import com.team202ok.demo.global.entity.BaseCreatedAtEntity;
+import com.team202ok.demo.domain.ai.entity.ScanResult;
+import com.team202ok.demo.domain.feedback.entity.UserFeedback;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -21,11 +23,26 @@ public class DisposalDecision extends BaseCreatedAtEntity {
     @Column(name = "scan_result_id", nullable = false)
     private Long scanResultId;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "scan_result_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_disposal_decisions_scan"))
+    private ScanResult scanResult;
+
     @Column(name = "user_feedback_id", nullable = false)
     private Long userFeedbackId;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_feedback_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_disposal_decisions_feedback"))
+    private UserFeedback userFeedback;
+
     @Column(name = "applied_category_id", nullable = false)
     private Long appliedCategoryId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "applied_category_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_disposal_decisions_category"))
+    private TrashCategory appliedCategory;
 
     @Column(name = "category_source", nullable = false, length = 20)
     private String categorySource;

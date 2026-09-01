@@ -21,6 +21,12 @@ public class RegionSchedule extends BaseCreatedAtEntity {
     @Column(name = "region_code", nullable = false, length = 50)
     private String regionCode;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "region_code", referencedColumnName = "region_code",
+            insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_region_schedules_region_code"))
+    private Region region;
+
     @Column(name = "discharge_days", nullable = false, length = 50)
     private String dischargeDays; // 예: "월,수,금"
 

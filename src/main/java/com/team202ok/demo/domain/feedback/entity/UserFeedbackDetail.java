@@ -1,6 +1,7 @@
 package com.team202ok.demo.domain.feedback.entity;
 
 import com.team202ok.demo.global.entity.BaseCreatedAtEntity;
+import com.team202ok.demo.domain.disposal.entity.ItemChecklist;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -21,8 +22,18 @@ public class UserFeedbackDetail extends BaseCreatedAtEntity {
     @Column(name = "user_feedback_id", nullable = false)
     private Long userFeedbackId;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_feedback_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_feedback_details_feedback"))
+    private UserFeedback userFeedback;
+
     @Column(name = "checklist_id", nullable = false)
     private Long checklistId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "checklist_id", insertable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_feedback_details_checklist"))
+    private ItemChecklist checklist;
 
     @Column(name = "corrected_status_value", nullable = false, length = 100)
     private String correctedStatusValue;
