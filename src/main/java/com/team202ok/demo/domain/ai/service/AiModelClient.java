@@ -20,6 +20,8 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class AiModelClient {
 
+    private static final Duration ANALYSIS_TIMEOUT = Duration.ofSeconds(120);
+
     private final WebClient aiServerWebClient;
 
     public AiModelResponse requestAnalysis(MultipartFile image) {
@@ -41,7 +43,7 @@ public class AiModelClient {
                     .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
                     .retrieve()
                     .bodyToMono(AiModelResponse.class)
-                    .timeout(Duration.ofSeconds(60))
+                    .timeout(ANALYSIS_TIMEOUT)
                     .block();
 
             log.info("[AI Client] [실제 AI 서버 호출 성공] 응답 데이터 수신 완료. CategoryCode: {}",
