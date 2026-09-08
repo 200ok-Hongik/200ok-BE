@@ -21,8 +21,26 @@ fi
 # On repeat deploys the existing broker already occupies its memory budget.
 if ! command -v docker >/dev/null || ! docker inspect ssok-rabbitmq >/dev/null 2>&1; then
     if (( mem_available_kb < 393216 )); then
-        echo 'Need at least 384 MiB available before first RabbitMQ start. Deployment stopped.' >&2
-        exit 1
+        # Use at most 512 MiB of the existing disk, not a new EBS volume.
+        # This is a low-cost development fallback, not extra physical RAM.
+        if ! swapon --show=NAME --noheadings | grep -Fxq /var/lib/ssok.swap; then
+            if [[ ! -e /var/lib/ssok.swap ]]; then
+                (umask 077; dd if=/dev/zero of=/var/lib/ssok.swap bs=1M count=512 status=none)
+                chmod 0600 /var/lib/ssok.swap
+                mkswap /var/lib/ssok.swap >/dev/null
+            fi
+            swapon /var/lib/ssok.swap
+        fi
+        if ! grep -q '^/var/lib/ssok.swap ' /etc/fstab; then
+            printf '/var/lib/ssok.swap none swap sw 0 0\n' >> /etc/fstab
+        fi
+        sysctl -w vm.swappiness=10 >/dev/null
+        swap_free_kb=$(awk '/^SwapFree:/ {print $2}' /proc/meminfo)
+        printf 'Existing-disk swap fallback: available swap=%s KiB\n' "$swap_free_kb"
+        if (( mem_available_kb + swap_free_kb < 393216 )); then
+            echo 'Insufficient memory headroom even with bounded swap. Deployment stopped.' >&2
+            exit 1
+        fi
     fi
 fi
 

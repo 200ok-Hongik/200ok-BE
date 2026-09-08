@@ -6,13 +6,13 @@
 
 `.platform/hooks/predeploy/20-local-rabbitmq.sh`가 기존 서버에서 수행됩니다.
 
-1. 전체 메모리 900,000KiB 이상, /var 디스크 여유 3GiB 이상, 최초 설치 시 가용 메모리 384MiB 이상인지 확인. 부족하면 오류로 배포를 중단하며 인스턴스를 확대하거나 볼륨을 추가하지 않습니다.
+1. 전체 메모리 900,000KiB 이상, /var 디스크 여유 3GiB 이상, 최초 설치 시 가용 메모리를 확인합니다. 384MiB 미만이면 기존 디스크에 512MiB swap을 만들어 사용하며 새 볼륨을 추가하지 않습니다. 메모리+가용 swap이 384MiB 미만이면 배포를 중단합니다.
 2. Amazon Linux의 Docker 패키지 설치/실행.
 3. 로컬 브로커 전용 비밀번호를 생성해 root 전용 파일에 보관. 외부로 출력하지 않습니다.
 4. 공식 `rabbitmq:4.2-alpine` 컨테이너를 기존 EC2에 실행. RAM 상한 256MiB, swap 추가 사용 금지, CPU 0.5, 로그 크기 제한.
 5. 포트는 `127.0.0.1:5672`만 바인딩. 보안 그룹을 변경하지 않고 관리 UI도 공개하지 않습니다.
 6. 기동 확인 후 `/etc/ssok/rabbitmq.properties`에 백엔드 연결 정보 저장.
-7. Procfile이 해당 파일을 읽습니다. Java heap 상한 320MiB, direct memory 상한 64MiB로 제한합니다. 전체 프로세스 메모리는 heap 외 영역도 사용합니다.
+7. Procfile이 해당 파일을 읽습니다. Java heap 상한 192MiB, direct memory 상한 32MiB, metaspace 128MiB, code cache 64MiB로 제한합니다. 전체 프로세스 메모리는 heap 외 영역도 사용합니다.
 
 ## AWS 환경변수
 
@@ -43,3 +43,5 @@
 ## 중단/롤백
 
 이전 애플리케이션 버전으로 롤백해도 컨테이너/volume은 삭제하지 않습니다. 별도 중단이 필요하면 서버에서 `docker stop ssok-rabbitmq`를 실행하고 /etc/ssok/rabbitmq.properties의 활성화 값을 false로 바꾼 뒤 앱을 재시작합니다. 데이터 삭제는 별도 확인 후 진행합니다.
+
+Swap은 디스크를 메모리 보조로 사용하므로 응답 지연이 늘어날 수 있습니다. 이 방식은 저부하 개발 환경용이며, swap 사용량이 지속적으로 증가하면 작업 동시성/사용량을 줄여야 합니다. 메모리 증설은 자동으로 하지 않습니다.

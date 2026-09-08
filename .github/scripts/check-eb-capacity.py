@@ -13,7 +13,7 @@ try:
     aws("request-environment-info", "--environment-name", ENV, "--info-type", "tail")
     time.sleep(20)
     info = aws("retrieve-environment-info", "--environment-name", ENV, "--info-type", "tail")
-    markers = ("Memory total=", "Insufficient capacity:", "Need at least 384 MiB", "Local RabbitMQ ready;", "RabbitMQ did not become ready.")
+    markers = ("Memory total=", "Existing-disk swap fallback:", "Insufficient memory headroom", "Insufficient capacity:", "Need at least 384 MiB", "Local RabbitMQ ready;", "RabbitMQ did not become ready.")
     for item in info.get("EnvironmentInfo", []):
         with urllib.request.urlopen(item["Message"], timeout=20) as response:
             for line in response.read().decode("utf-8", errors="replace").splitlines():
