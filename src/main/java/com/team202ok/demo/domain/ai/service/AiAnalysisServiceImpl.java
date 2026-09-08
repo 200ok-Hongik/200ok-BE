@@ -36,6 +36,8 @@ import java.util.stream.Collectors;
 public class AiAnalysisServiceImpl implements AiAnalysisService {
 
     private final ImageUploader imageUploader;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
     private final ScanResultRepository scanResultRepository;
     private final AiScanResultRepository aiScanResultRepository;
     private final AiScanDetailRepository aiScanDetailRepository;
@@ -55,75 +57,46 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
     @Transactional(Transactional.TxType.NOT_SUPPORTED)
     public AiRes.Analyze analyze(MultipartFile image, Long userId) {
 
-        // 1. 이미지 업로드
-        String imageUrl = imageUploader.upload(image);
-
-        // 2. scan_results 저장
-        ScanResult scanResult = scanResultRepository.save(
-                ScanResult.builder()
-                        .userId(userId)
-                        .imageUrl(imageUrl)
-                        .build()
-        );
-
-        // 3. AI 서버 호출
-        AiModelResponse modelResponse = aiModelClient.requestAnalysis(image);
-
-        // 4. categoryCode -> TrashCategory 조회
-        TrashCategory category = trashCategoryRepository.findByCode(modelResponse.getCategoryCode())
-                .orElseThrow(() -> new CategoryNotFoundException(modelResponse.getCategoryCode()));
-
-        // 5. ai_scan_results 저장
-        AiScanResult aiScanResult = aiScanResultRepository.save(
-                AiScanResult.builder()
-                        .scanResultId(scanResult.getId())
-                        .aiCategoryId(category.getId())
-                        .confidence(modelResponse.getCategoryConfidence())
-                        .modelVersion(modelResponse.getModelVersion())
-                        .rawResponse(modelResponse.getRawJson())
-                        .build()
-        );
-
-        // 6. 해당 품목의 체크리스트 조회 (display_order 기준 정렬)
-        List<ItemChecklist> checklists =
-                itemChecklistRepository.findByTrashCategoryIdOrderByDisplayOrder(category.getId());
-
-        // 7. checkItemName 기준 매핑 후 저장 + 응답 구성
-        List<AiRes.Analyze.ChecklistResult> results = new ArrayList<>();
-
-        for (ItemChecklist checklist : checklists) {
-            AiModelResponse.CheckItem item =
-                    modelResponse.getCheckItemByName(checklist.getCheckItemName());
-
-            String statusValue = item != null ? item.getStatusValue() : null;
-            BigDecimal confidence = item != null ? item.getConfidence() : null;
-
-            if (statusValue != null) {
-                aiScanDetailRepository.save(
-                        AiScanDetail.builder()
-                                .aiScanResultId(aiScanResult.getId())
-                                .checklistId(checklist.getId())
-                                .statusValue(statusValue)
-                                .confidence(confidence)
-                                .build()
-                );
-            }
-
-            results.add(AiRes.Analyze.ChecklistResult.builder()
-                    .checklistId(checklist.getId())
-                    .checkItemName(checklist.getCheckItemName())
-                    .statusValue(statusValue)
-                    .confidence(confidence)
-                    .build());
+        AiModelResponse response = aiModelClient.requestAnalysis(image);
+        response.validate();
+        // Resolve every category before writing anything, including multi-object responses.
+        Map<String, TrashCategory> categories = new HashMap<>();
+        for (AiModelResponse.DetectedObject object : response.getObjects()) {
+            String code = object.finalResult().itemCode();
+            categories.computeIfAbsent(code, key -> trashCategoryRepository.findByCode(key)
+                    .orElseThrow(() -> new CategoryNotFoundException(key)));
         }
-
-        return AiRes.Analyze.builder()
-                .scanResultId(scanResult.getId())
-                .categoryCode(category.getCode())
-                .categoryConfidence(modelResponse.getCategoryConfidence())
-                .modelVersion(modelResponse.getModelVersion())
-                .checklistResults(results)
-                .build();
+        String imageUrl = imageUploader.upload(image);
+        // The network calls stay outside the transaction; all database writes are atomic.
+        return transactionTemplate.execute(status -> {
+            ScanResult scan = scanResultRepository.save(ScanResult.builder()
+                    .userId(userId).imageUrl(imageUrl).aiRawResponse(response.getRawJson()).build());
+            for (AiModelResponse.DetectedObject object : response.getObjects()) {
+                TrashCategory category = categories.get(object.finalResult().itemCode());
+                String rawObject;
+                try {
+                    rawObject = objectMapper.writeValueAsString(object);
+                } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                    throw new IllegalStateException("AI 객체 저장 실패", e);
+                }
+                AiScanResult ai = aiScanResultRepository.save(AiScanResult.builder()
+                        .scanResultId(scan.getId()).objectId(object.objectId())
+                        .aiCategoryId(category.getId()).rawResponse(rawObject).build());
+                // Compatibility projection for existing checklist-based readers only.
+                // Full typed states, bbox and source are retained in rawResponse.
+                for (ItemChecklist checklist : itemChecklistRepository
+                        .findByTrashCategoryIdOrderByDisplayOrder(category.getId())) {
+                    com.fasterxml.jackson.databind.JsonNode value = object.finalResult().states()
+                            .get(checklist.getCheckItemName());
+                    if (value != null && !value.isNull() && value.isValueNode()) {
+                        aiScanDetailRepository.save(AiScanDetail.builder().aiScanResultId(ai.getId())
+                                .checklistId(checklist.getId()).statusValue(value.asText()).build());
+                    }
+                }
+            }
+            return AiRes.Analyze.builder().scanResultId(scan.getId())
+                    .objects(response.getObjects()).additionalObjects(response.getAdditionalObjects()).build();
+        });
     }
 
     @Override
@@ -154,6 +127,7 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
     @Override
     public AiRes.ScanDetail getScan(Long scanId, Long userId) {
         ScanResult scan = getOwnedScan(scanId, userId);
+        requireLegacySingleObject(scan);
         AiScanResult ai = aiScanResultRepository.findFirstByScanResultIdOrderByCreatedAtDesc(scanId)
                 .orElseThrow(() -> new ProjectException(GeneralErrorCode.NOT_FOUND, "AI 분석 결과를 찾을 수 없습니다."));
         TrashCategory category = trashCategoryRepository.findById(ai.getAiCategoryId())
@@ -174,7 +148,7 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
 
     @Override
     public AiRes.ConfirmedResult updateResult(Long scanId, AiReq.UpdateResult request, Long userId) {
-        getOwnedScan(scanId, userId);
+        requireLegacySingleObject(getOwnedScan(scanId, userId));
         AiScanResult ai = aiScanResultRepository.findFirstByScanResultIdOrderByCreatedAtDesc(scanId)
                 .orElseThrow(() -> new ProjectException(GeneralErrorCode.NOT_FOUND, "AI 분석 결과를 찾을 수 없습니다."));
         Long categoryId = request.categoryId() == null ? ai.getAiCategoryId() : request.categoryId();
@@ -241,6 +215,20 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
                 .scanResultId(scanId).userId(userId)
                 .comment(comment)
                 .build());
+    }
+
+    private void requireLegacySingleObject(ScanResult scan) {
+        if (scan.getAiRawResponse() == null) return; // Historical single-item scans.
+        try {
+            AiModelResponse response = objectMapper.readValue(scan.getAiRawResponse(), AiModelResponse.class);
+            response.validate();
+            if (response.getObjects().size() != 1 || !response.getAdditionalObjects().isEmpty()) {
+                throw new ProjectException(GeneralErrorCode.BAD_REQUEST,
+                        "다중 객체 또는 추가 후보가 있는 스캔은 objectId 기반 API가 필요합니다.");
+            }
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("저장된 AI 응답을 읽을 수 없습니다.", e);
+        }
     }
 
     private ScanResult getOwnedScan(Long scanId, Long userId) {

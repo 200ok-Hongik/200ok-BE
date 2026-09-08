@@ -23,6 +23,7 @@ public class AiModelClient {
     private static final Duration ANALYSIS_TIMEOUT = Duration.ofSeconds(120);
 
     private final WebClient aiServerWebClient;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     public AiModelResponse requestAnalysis(MultipartFile image) {
         log.info("[AI Client] === AI 분석 요청 시작 ===");
@@ -37,17 +38,19 @@ public class AiModelClient {
             log.info("[AI Client] 전송 형식: multipart/form-data, imageName={}, imageSize={} bytes",
                     image.getOriginalFilename(), image.getSize());
 
-            AiModelResponse response = aiServerWebClient.post()
+            String rawResponse = aiServerWebClient.post()
                     .uri("/analyze")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
                     .retrieve()
-                    .bodyToMono(AiModelResponse.class)
+                    .bodyToMono(String.class)
                     .timeout(ANALYSIS_TIMEOUT)
                     .block();
 
-            log.info("[AI Client] [실제 AI 서버 호출 성공] 응답 데이터 수신 완료. CategoryCode: {}",
-                    response != null ? response.getCategoryCode() : "null");
+            AiModelResponse response = objectMapper.readValue(rawResponse, AiModelResponse.class);
+            response.validate();
+            response.setRawJson(rawResponse);
+            log.info("[AI Client] 분석 완료. 객체 수: {}", response.getObjects().size());
             return response;
 
         } catch (WebClientResponseException e) {

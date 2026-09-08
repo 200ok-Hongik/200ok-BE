@@ -30,9 +30,14 @@ public class ScanResult extends BaseCreatedAtEntity {
     @Column(name = "image_url", nullable = false, length = 500)
     private String imageUrl;
 
+    @Lob
+    @Column(name = "ai_raw_response", columnDefinition = "LONGTEXT")
+    private String aiRawResponse;
+
     @Builder
-    private ScanResult(Long userId, String imageUrl) {
+    private ScanResult(Long userId, String imageUrl, String aiRawResponse) {
         this.userId = userId;
         this.imageUrl = imageUrl;
+        this.aiRawResponse = aiRawResponse;
     }
 }

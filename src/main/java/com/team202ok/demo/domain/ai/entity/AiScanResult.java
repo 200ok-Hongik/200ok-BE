@@ -47,13 +47,17 @@ public class AiScanResult extends BaseCreatedAtEntity {
     @Column(name = "raw_response", columnDefinition = "LONGTEXT")
     private String rawResponse;
 
+    @Column(name = "object_id", length = 255)
+    private String objectId;
+
     @Builder
     private AiScanResult(Long scanResultId, Long aiCategoryId, BigDecimal confidence,
-                         String modelVersion, String rawResponse) {
+                         String modelVersion, String rawResponse, String objectId) {
         this.scanResultId = scanResultId;
         this.aiCategoryId = aiCategoryId;
         this.confidence = confidence;
         this.modelVersion = modelVersion;
         this.rawResponse = rawResponse;
+        this.objectId = objectId;
     }
 }

@@ -16,32 +16,11 @@ public final class AiRes {
     @Builder
     public record Analyze(
             Long scanResultId,
-            String categoryCode,
-            BigDecimal categoryConfidence,
-            String modelVersion,
-            List<ChecklistResult> checklistResults
+            List<AiModelResponse.DetectedObject> objects,
+            List<com.fasterxml.jackson.databind.JsonNode> additionalObjects
     ) {
         @Builder
         public record ChecklistResult(
-                Long checklistId,
-                String checkItemName,
-                String statusValue,
-                BigDecimal confidence
-        ) {}
-    }
-
-    /**
-     * Python AI 서버에서 전달받는 원본 응답 매핑용 DTO
-     */
-    @Builder
-    public record AiServerResponse(
-            String categoryCode,
-            BigDecimal categoryConfidence,
-            String modelVersion,
-            List<CheckItem> checklistResults
-    ) {
-        @Builder
-        public record CheckItem(
                 Long checklistId,
                 String checkItemName,
                 String statusValue,

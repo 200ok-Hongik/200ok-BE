@@ -16,7 +16,7 @@ class AiResJsonTest {
 
     @Test
     void analyzeUsesScanResultId() throws Exception {
-        AiRes.Analyze response = new AiRes.Analyze(1L, "PET", new BigDecimal("0.95"), "v1", List.of());
+        AiRes.Analyze response = new AiRes.Analyze(1L, List.of(), List.of());
 
         JsonNode json = objectMapper.valueToTree(response);
 
