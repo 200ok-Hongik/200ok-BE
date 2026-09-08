@@ -1,1 +1,1 @@
-web: java -Xms64m -Xmx320m -XX:MaxDirectMemorySize=64m -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -jar application.jar --spring.config.additional-location=optional:file:/etc/ssok/rabbitmq.properties
+web: java -Xms64m -Xmx192m -XX:MaxDirectMemorySize=32m -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=64m -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -jar application.jar --spring.config.additional-location=optional:file:/etc/ssok/rabbitmq.properties

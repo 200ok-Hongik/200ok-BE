@@ -12,6 +12,12 @@ if (( mem_total_kb < 900000 || disk_available_kb < 3145728 )); then
     exit 1
 fi
 
+# Stage the JVM memory cap before first broker installation on small instances.
+if [[ -f /var/app/staging/.platform/local-rabbitmq-stage ]] && [[ $(cat /var/app/staging/.platform/local-rabbitmq-stage) == prepare ]]; then
+    echo 'Capacity preparation: deploying the bounded JVM before starting RabbitMQ.'
+    exit 0
+fi
+
 # On repeat deploys the existing broker already occupies its memory budget.
 if ! command -v docker >/dev/null || ! docker inspect ssok-rabbitmq >/dev/null 2>&1; then
     if (( mem_available_kb < 393216 )); then
