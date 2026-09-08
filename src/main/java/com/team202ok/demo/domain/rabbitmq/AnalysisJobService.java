@@ -6,9 +6,6 @@ import com.team202ok.demo.global.exception.custom.ProjectException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.http.*;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.UUID;
@@ -22,8 +19,8 @@ public class AnalysisJobService {
     private final ObjectMapper mapper;
 
     public JobView submit(MultipartFile image, Long userId) throws IOException {
-        if (!enabled) throw new org.springframework.web.server.ResponseStatusException(
-                HttpStatus.SERVICE_UNAVAILABLE, "비동기 분석 큐가 활성화되지 않았습니다.");
+        if (!enabled) throw new ProjectException(
+                GeneralErrorCode.SERVICE_UNAVAILABLE, "비동기 분석 큐가 활성화되지 않았습니다.");
         if (userId == null) throw new ProjectException(GeneralErrorCode.FORBIDDEN);
         if (image.isEmpty() || image.getSize() > 10 * 1024 * 1024
                 || image.getContentType() == null || !image.getContentType().startsWith("image/")) {

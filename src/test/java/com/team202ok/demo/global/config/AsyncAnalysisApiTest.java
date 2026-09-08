@@ -24,6 +24,20 @@ class AsyncAnalysisApiTest {
     @MockitoBean AnalysisJobService jobs;
     @MockitoBean JwtTokenProvider tokens;
 
+    @Test void disabledQueueReturns503InsteadOf500() throws Exception {
+        when(tokens.validateToken("test-token")).thenReturn(true);
+        when(tokens.isAccessToken("test-token")).thenReturn(true);
+        when(tokens.getUserId("test-token")).thenReturn(1L);
+        when(jobs.submit(any(), eq(1L))).thenThrow(new com.team202ok.demo.global.exception.custom.ProjectException(
+                com.team202ok.demo.global.exception.code.GeneralErrorCode.SERVICE_UNAVAILABLE,
+                "비동기 분석 큐가 활성화되지 않았습니다."));
+        mvc.perform(multipart("/api/ai/analysis")
+                        .file(new MockMultipartFile("image", "test.png", "image/png", new byte[]{1}))
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("SERVICE_UNAVAILABLE"));
+    }
+
     @Test void acceptsAtTheOnlyAnalysisSubmissionRoute() throws Exception {
         when(tokens.validateToken("test-token")).thenReturn(true);
         when(tokens.isAccessToken("test-token")).thenReturn(true);

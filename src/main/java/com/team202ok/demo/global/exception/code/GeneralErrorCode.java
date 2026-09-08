@@ -23,6 +23,9 @@ public enum GeneralErrorCode implements BaseErrorCode {
     NOT_FOUND(HttpStatus.NOT_FOUND,
             "NOT_FOUND",
             "해당 리소스를 찾을 수 없습니다."),
+    SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE,
+            "SERVICE_UNAVAILABLE",
+            "서비스를 일시적으로 사용할 수 없습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR,
             "INTERNAL_SERVER_ERROR",
             "서버 내부 오류입니다.")
