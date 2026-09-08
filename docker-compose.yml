@@ -6,7 +6,7 @@ services:
     image: mysql:8.0
     container_name: 200ok-ssok
     ports:
-      - "3309:3306" # 로컬 PC에서는 3307 포트로 접속
+      - "3309:3306" # 로컬 PC에서는 3309 포트로 접속
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: app_db
@@ -34,7 +34,18 @@ services:
       retries: 5
     restart: unless-stopped
 
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: 200ok-rabbitmq
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
+
 # 데이터 영구 저장을 위한 볼륨 선언
 volumes:
   mysql_data:
   redis_data:
+  rabbitmq_data:

@@ -4,6 +4,8 @@ import com.team202ok.demo.domain.ai.dto.AiReq;
 import com.team202ok.demo.domain.ai.dto.AiRes;
 import com.team202ok.demo.domain.ai.service.AiAnalysisService;
 import com.team202ok.demo.domain.ai.service.AiModelClient;
+import com.team202ok.demo.domain.rabbitmq.AnalysisJobService;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,22 +19,30 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/ai")
 @RequiredArgsConstructor
-@Tag(name = "AI (호환 API)", description = "기존 AI 분석 및 AI 서버 상태 확인 API입니다. 신규 스캔 API는 /api/scans를 사용합니다.")
+@Tag(name = "AI", description = "이미지 비동기 분석 접수 및 결과 조회 API입니다.")
 public class AiAnalysisController {
 
     private final AiAnalysisService aiAnalysisService;
     private final AiModelClient aiModelClient;
+    private final AnalysisJobService analysisJobs;
 
     @PostMapping(value = "/analysis", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "이미지 AI 분석 (기존 API)", description = "업로드한 이미지 파일을 AI 서버에 전달해 품목과 상태를 분석합니다.")
-    // 변경: ResponseEntity<AiRes> -> ResponseEntity<AiRes.Analyze>
-    public ResponseEntity<AiRes.Analyze> analyze(
+    @Operation(summary = "이미지 분석 접수", description = "작업을 저장하고 즉시 202와 jobId를 반환합니다. 완료 결과는 jobId로 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "202", description = "분석 작업 접수됨")
+    public ResponseEntity<AnalysisJobService.JobView> analyze(
             @RequestPart("image") MultipartFile image,
             @Parameter(hidden = true) @AuthenticationPrincipal Long userId
-    ) {
-        return ResponseEntity.status(201).body(
-                aiAnalysisService.analyze(image, userId)
-        );
+    ) throws IOException {
+        var job = analysisJobs.submit(image, userId);
+        return ResponseEntity.accepted()
+                .location(java.net.URI.create("/api/ai/analysis/" + job.jobId())).body(job);
+    }
+
+    @GetMapping("/analysis/{jobId}")
+    @Operation(summary = "분석 작업 결과 조회", description = "본인 작업의 상태 및 완료된 객체별 결과를 반환합니다.")
+    public AnalysisJobService.JobView getAnalysis(@PathVariable String jobId,
+            @Parameter(hidden = true) @AuthenticationPrincipal Long userId) throws IOException {
+        return analysisJobs.get(jobId, userId);
     }
 
     @PostMapping("/feedback")

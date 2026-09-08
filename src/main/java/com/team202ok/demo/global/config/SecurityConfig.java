@@ -43,6 +43,10 @@ public class SecurityConfig {
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(errors -> errors.defaultAuthenticationEntryPointFor(
+                        new org.springframework.security.web.authentication.HttpStatusEntryPoint(org.springframework.http.HttpStatus.UNAUTHORIZED),
+                        new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/**")
+                ))
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .oauth2Login(oauth -> oauth

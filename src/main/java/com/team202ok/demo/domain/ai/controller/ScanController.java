@@ -20,13 +20,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class ScanController {
     private final AiAnalysisService aiAnalysisService;
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "분리수거 이미지 분석", description = "이미지를 AI 서버로 전송하고 AI 품목·상태 분석 결과를 저장합니다.")
-    public ResponseEntity<AiRes.Analyze> analyze(@RequestPart("image") MultipartFile image,
-                                                 @Parameter(hidden = true) @AuthenticationPrincipal Long userId) {
-        return ResponseEntity.status(201).body(aiAnalysisService.analyze(image, userId));
-    }
-
     @GetMapping("/{scanResultId}")
     @Operation(summary = "분석 결과 조회", description = "저장된 AI 분석 결과와 사용자가 확정한 결과를 조회합니다.")
     public AiRes.ScanDetail getScan(@Parameter(description = "스캔 결과 ID", example = "1") @PathVariable Long scanResultId,
