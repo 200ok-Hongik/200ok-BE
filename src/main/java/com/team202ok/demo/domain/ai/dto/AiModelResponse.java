@@ -23,20 +23,25 @@ public class AiModelResponse {
     public void setRawJson(String rawJson) { this.rawJson = rawJson; }
 
     public void validate() {
-        if (objects == null || additionalObjects == null) {
-            throw new IllegalArgumentException("AI V1 requires objects and additionalObjects arrays");
-        }
+        var errors = new java.util.ArrayList<String>();
+        if (objects == null) errors.add("objects: required array is missing/null");
+        if (additionalObjects == null) errors.add("additionalObjects: required array is missing/null");
         var ids = new HashSet<String>();
-        for (DetectedObject object : objects) {
-            if (object == null || object.objectId() == null || object.objectId().isBlank()
-                    || !ids.add(object.objectId()) || object.bbox() == null
-                    || !object.bbox().valid() || object.finalResult() == null
-                    || object.finalResult().itemCode() == null || object.finalResult().itemCode().isBlank()
-                    || object.finalResult().states() == null
-                    || object.finalResult().source() == null || object.finalResult().source().isBlank()) {
-                throw new IllegalArgumentException("Invalid AI V1 object");
-            }
+        if (objects != null) for (int i = 0; i < objects.size(); i++) {
+            var object = objects.get(i);
+            String path = "objects[" + i + "]";
+            if (object == null) { errors.add(path + ": null object"); continue; }
+            if (object.objectId() == null || object.objectId().isBlank()) errors.add(path + ".objectId: missing/blank");
+            else if (!ids.add(object.objectId())) errors.add(path + ".objectId: duplicate");
+            if (object.bbox() == null) errors.add(path + ".bbox: missing/null");
+            else if (!object.bbox().valid()) errors.add(path + ".bbox: requires finite coordinates, xMin/yMin >= 0, xMax > xMin, yMax > yMin; actual=" + object.bbox());
+            if (object.finalResult() == null) { errors.add(path + ".finalResult: missing/null"); continue; }
+            var result = object.finalResult();
+            if (result.itemCode() == null || result.itemCode().isBlank()) errors.add(path + ".finalResult.itemCode: missing/blank");
+            if (result.states() == null) errors.add(path + ".finalResult.states: missing/null");
+            if (result.source() == null || result.source().isBlank()) errors.add(path + ".finalResult.source: missing/blank");
         }
+        if (!errors.isEmpty()) throw new IllegalArgumentException("Invalid AI V1 response: " + String.join("; ", errors));
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

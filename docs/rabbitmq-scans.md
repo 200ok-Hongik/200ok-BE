@@ -36,3 +36,7 @@
 - dev.ssok.store의 분석 응답 명세에는 objects/additionalObjects 반영됨.
 - 배포 API의 비로그인 요청은 당시 HTTPS 로그인으로 302. 로컬 수정은 API 401 반환으로 변경.
 - 실제 이미지 업로더는 기존 FakeImageUploader입니다. 원본 이미지 영구 저장은 아직 구현되어 있지 않습니다.
+
+## AI 진단 로그
+
+AI 응답은 검증 전에 `[AI RAW] trace=<jobId>, part=N/M, jsonEscaped=...`로 기록합니다. 2,000자 단위 조각을 순서대로 연결하고 JSON 문자열 이스케이프를 해제하면 원문을 복원할 수 있습니다. HTTP 수신 시간, JSON_PARSE/V1_VALIDATION/HTTP_REQUEST 실패 단계, 모든 검증 실패 필드 경로를 기록합니다. 사진 바이트와 인증 헤더는 기록하지 않습니다. AI 응답 내용은 운영 로그에 남으므로 진단 완료 후 원문 기록 범위를 재검토합니다. SQL 반복 출력은 끄고 작업 로그를 우선합니다.

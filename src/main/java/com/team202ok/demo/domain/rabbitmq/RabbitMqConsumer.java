@@ -22,21 +22,23 @@ public class RabbitMqConsumer {
     public void consume(String jobId) {
         AnalysisJob job = transitions.claim(jobId);
         if (job == null) return;
-        var claimTime = job.getUpdatedAt();
-        long started = System.nanoTime();
-        log.info("AI job started: jobId={}, queueWaitMs={}", jobId,
-                java.time.Duration.between(job.getCreatedAt(), claimTime).toMillis());
-        String resultJson = null;
-        String error = null;
-        try {
-            var result = analysis.analyze(new StoredImage(job.getFilename(), job.getContentType(), job.getImage()), job.getUserId());
-            resultJson = mapper.writeValueAsString(result);
-        } catch (Exception e) {
-            log.error("AI job failed: {}", jobId, e);
-            error = "AI 분석에 실패했습니다. 서버 연결 상태를 확인한 후 다시 요청해 주세요.";
+        try (var context = org.slf4j.MDC.putCloseable("aiJobId", jobId)) {
+            var claimTime = job.getUpdatedAt();
+            long started = System.nanoTime();
+            log.info("AI job started: jobId={}, queueWaitMs={}", jobId,
+                    java.time.Duration.between(job.getCreatedAt(), claimTime).toMillis());
+            String resultJson = null;
+            String error = null;
+            try {
+                var result = analysis.analyze(new StoredImage(job.getFilename(), job.getContentType(), job.getImage()), job.getUserId());
+                resultJson = mapper.writeValueAsString(result);
+            } catch (Exception e) {
+                log.error("AI job failed: {}", jobId, e);
+                error = "AI 분석에 실패했습니다. 서버 연결 상태를 확인한 후 다시 요청해 주세요.";
+            }
+            transitions.finish(jobId, claimTime, resultJson, error);
+            log.info("AI job finished: jobId={}, status={}, processingMs={}", jobId,
+                    error == null ? "COMPLETED" : "FAILED", (System.nanoTime() - started) / 1_000_000);
         }
-        transitions.finish(jobId, claimTime, resultJson, error);
-        log.info("AI job finished: jobId={}, status={}, processingMs={}", jobId,
-                error == null ? "COMPLETED" : "FAILED", (System.nanoTime() - started) / 1_000_000);
     }
 }

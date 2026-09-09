@@ -30,6 +30,10 @@ public class AiModelClient {
         log.info("[AI Client] === AI 분석 요청 시작 ===");
         log.info("[AI Client] 입력된 이미지 파일: {}", image.getOriginalFilename());
 
+        String stage = "HTTP_REQUEST";
+        String trace = org.slf4j.MDC.get("aiJobId");
+        if (trace == null) trace = java.util.UUID.randomUUID().toString();
+        log.info("[AI Client] trace={}, imageBytes={}, contentType={}, timeoutSeconds={}", trace, image.getSize(), image.getContentType(), ANALYSIS_TIMEOUT.toSeconds());
         try {
             log.info("[AI Client] [실제 AI 서버 호출 시도] 대상 URI: /analyze");
 
@@ -44,11 +48,18 @@ public class AiModelClient {
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
                     .retrieve()
-                    .bodyToMono(String.class)
+                    .toEntity(String.class)
+                    .doOnNext(entity -> log.info("[AI Client] HTTP response: status={}, contentType={}", entity.getStatusCode().value(), entity.getHeaders().getContentType()))
+                    .map(entity -> entity.getBody() == null ? "" : entity.getBody())
                     .timeout(ANALYSIS_TIMEOUT)
                     .block();
 
+            log.info("[AI Client] trace={}, responseReceivedMs={}", trace, (System.nanoTime() - started) / 1_000_000);
+            logRawResponse(trace, rawResponse);
+            stage = "JSON_PARSE";
             AiModelResponse response = objectMapper.readValue(rawResponse, AiModelResponse.class);
+            stage = "V1_VALIDATION";
+            if (response == null) throw new IllegalArgumentException("response: null JSON document");
             response.validate();
             response.setRawJson(rawResponse);
             log.info("[AI Client] 분석 완료. 객체 수: {}, elapsedMs={}", response.getObjects().size(),
@@ -61,9 +72,20 @@ public class AiModelClient {
             throw new ProjectException(GeneralErrorCode.BAD_REQUEST,
                     "AI 서버 분석 실패: " + e.getResponseBodyAsString());
         } catch (Exception e) {
-            log.error("[AI Client] [실제 AI 서버 통신 실패] AI 서버와 통신 중 에러가 발생했습니다. 에러 메시지: {}", e.getMessage(), e);
+            log.error("[AI Client] trace={}, stage={}, elapsedMs={}, exception={}, reason={}", trace, stage, (System.nanoTime() - started) / 1_000_000, e.getClass().getName(), e.getMessage(), e);
             throw new ProjectException(GeneralErrorCode.INTERNAL_SERVER_ERROR,
-                    "AI 서버 연결 실패: " + e.getMessage());
+                    "AI 처리 실패 [" + stage + "]: " + e.getMessage());
+        }
+    }
+
+    private void logRawResponse(String trace, String raw) throws com.fasterxml.jackson.core.JsonProcessingException {
+        // Escape line breaks so upstream text cannot forge log entries. Split to avoid line truncation.
+        String escaped = objectMapper.writeValueAsString(raw);
+        int chunkSize = 2000;
+        int parts = Math.max(1, (escaped.length() + chunkSize - 1) / chunkSize);
+        for (int i = 0; i < parts; i++) {
+            log.info("[AI RAW] trace={}, part={}/{}, jsonEscaped={}", trace, i + 1, parts,
+                    escaped.substring(i * chunkSize, Math.min(escaped.length(), (i + 1) * chunkSize)));
         }
     }
 
