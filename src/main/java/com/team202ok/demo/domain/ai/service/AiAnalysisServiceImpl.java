@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@lombok.extern.slf4j.Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -66,9 +67,12 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
             categories.computeIfAbsent(code, key -> trashCategoryRepository.findByCode(key)
                     .orElseThrow(() -> new CategoryNotFoundException(key)));
         }
+        long uploadStarted = System.nanoTime();
         String imageUrl = imageUploader.upload(image);
+        log.info("AI image upload finished: elapsedMs={}", (System.nanoTime() - uploadStarted) / 1_000_000);
+        long saveStarted = System.nanoTime();
         // The network calls stay outside the transaction; all database writes are atomic.
-        return transactionTemplate.execute(status -> {
+        AiRes.Analyze result = transactionTemplate.execute(status -> {
             ScanResult scan = scanResultRepository.save(ScanResult.builder()
                     .userId(userId).imageUrl(imageUrl).aiRawResponse(response.getRawJson()).build());
             for (AiModelResponse.DetectedObject object : response.getObjects()) {
@@ -97,6 +101,9 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
             return AiRes.Analyze.builder().scanResultId(scan.getId())
                     .objects(response.getObjects()).additionalObjects(response.getAdditionalObjects()).build();
         });
+        log.info("AI result saved: scanResultId={}, elapsedMs={}", result.scanResultId(),
+                (System.nanoTime() - saveStarted) / 1_000_000);
+        return result;
     }
 
     @Override

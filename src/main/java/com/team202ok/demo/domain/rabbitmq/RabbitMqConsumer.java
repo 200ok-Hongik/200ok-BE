@@ -7,31 +7,36 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 @ConditionalOnProperty(name = "app.rabbitmq.enabled", havingValue = "true")
 public class RabbitMqConsumer {
-    private final AnalysisJobRepository jobs;
+    private final AnalysisJobTransitions transitions;
     private final AiAnalysisService analysis;
     private final ObjectMapper mapper;
 
     @RabbitListener(queues = RabbitMqConfig.QUEUE, concurrency = "1")
-    @Transactional
     public void consume(String jobId) {
-        AnalysisJob job = jobs.findLocked(jobId).orElse(null);
-        // Serializes duplicate deliveries; completed/failed jobs are never processed again.
-        if (job == null || !"QUEUED".equals(job.getStatus())) return;
-        job.processing();
+        AnalysisJob job = transitions.claim(jobId);
+        if (job == null) return;
+        var claimTime = job.getUpdatedAt();
+        long started = System.nanoTime();
+        log.info("AI job started: jobId={}, queueWaitMs={}", jobId,
+                java.time.Duration.between(job.getCreatedAt(), claimTime).toMillis());
+        String resultJson = null;
+        String error = null;
         try {
             var result = analysis.analyze(new StoredImage(job.getFilename(), job.getContentType(), job.getImage()), job.getUserId());
-            job.complete(mapper.writeValueAsString(result));
+            resultJson = mapper.writeValueAsString(result);
         } catch (Exception e) {
             log.error("AI job failed: {}", jobId, e);
-            job.fail("AI 분석에 실패했습니다. 서버 연결 상태를 확인한 후 다시 요청해 주세요.");
+            error = "AI 분석에 실패했습니다. 서버 연결 상태를 확인한 후 다시 요청해 주세요.";
         }
-        jobs.save(job);
+        transitions.finish(jobId, claimTime, resultJson, error);
+        log.info("AI job finished: jobId={}, status={}, processingMs={}", jobId,
+                error == null ? "COMPLETED" : "FAILED", (System.nanoTime() - started) / 1_000_000);
     }
 }

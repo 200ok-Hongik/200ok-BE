@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.*;
 class RabbitMqConsumerTest {
     private final AnalysisJobRepository jobs = mock(AnalysisJobRepository.class);
     private final AiAnalysisService ai = mock(AiAnalysisService.class);
-    private final RabbitMqConsumer consumer = new RabbitMqConsumer(jobs, ai, new ObjectMapper());
+    private final RabbitMqConsumer consumer = new RabbitMqConsumer(new AnalysisJobTransitions(jobs), ai, new ObjectMapper());
     @Test void completesAndIgnoresDuplicateDelivery() {
         var job = new AnalysisJob("job", 1L, "test.png", "image/png", new byte[]{1});
         when(jobs.findLocked("job")).thenReturn(Optional.of(job));

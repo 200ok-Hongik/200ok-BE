@@ -26,6 +26,7 @@ public class AiModelClient {
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     public AiModelResponse requestAnalysis(MultipartFile image) {
+        long started = System.nanoTime();
         log.info("[AI Client] === AI 분석 요청 시작 ===");
         log.info("[AI Client] 입력된 이미지 파일: {}", image.getOriginalFilename());
 
@@ -50,7 +51,8 @@ public class AiModelClient {
             AiModelResponse response = objectMapper.readValue(rawResponse, AiModelResponse.class);
             response.validate();
             response.setRawJson(rawResponse);
-            log.info("[AI Client] 분석 완료. 객체 수: {}", response.getObjects().size());
+            log.info("[AI Client] 분석 완료. 객체 수: {}, elapsedMs={}", response.getObjects().size(),
+                    (System.nanoTime() - started) / 1_000_000);
             return response;
 
         } catch (WebClientResponseException e) {

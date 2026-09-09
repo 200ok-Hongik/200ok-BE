@@ -12,7 +12,7 @@
 4. 공식 `rabbitmq:4.2-alpine` 컨테이너를 기존 EC2에 실행. RAM 상한 256MiB, swap 추가 사용 금지, CPU 0.5, 로그 크기 제한.
 5. 포트는 `127.0.0.1:5672`만 바인딩. 보안 그룹을 변경하지 않고 관리 UI도 공개하지 않습니다.
 6. 기동 확인 후 `/etc/ssok/rabbitmq.properties`에 백엔드 연결 정보 저장.
-7. Procfile이 해당 파일을 읽습니다. Java heap 상한 192MiB, direct memory 상한 32MiB, metaspace 128MiB, code cache 64MiB로 제한합니다. 전체 프로세스 메모리는 heap 외 영역도 사용합니다.
+7. Procfile이 해당 파일을 읽습니다. Java heap 상한 192MiB, direct memory 상한 32MiB, metaspace 256MiB, code cache 64MiB로 제한합니다. 전체 프로세스 메모리는 heap 외 영역도 사용합니다.
 
 ## AWS 환경변수
 
@@ -45,3 +45,7 @@
 이전 애플리케이션 버전으로 롤백해도 컨테이너/volume은 삭제하지 않습니다. 별도 중단이 필요하면 서버에서 `docker stop ssok-rabbitmq`를 실행하고 /etc/ssok/rabbitmq.properties의 활성화 값을 false로 바꾼 뒤 앱을 재시작합니다. 데이터 삭제는 별도 확인 후 진행합니다.
 
 Swap은 디스크를 메모리 보조로 사용하므로 응답 지연이 늘어날 수 있습니다. 이 방식은 저부하 개발 환경용이며, swap 사용량이 지속적으로 증가하면 작업 동시성/사용량을 줄여야 합니다. 메모리 증설은 자동으로 하지 않습니다.
+
+## 2026-09-09 Metaspace 장애 수정
+
+운영 로그에서 `OutOfMemoryError: Metaspace`가 반복되어 Procfile 제한을 128MiB에서 256MiB로 조정했습니다. `ExitOnOutOfMemoryError`로 메모리 고갈 후 일부 요청만 응답하는 프로세스가 남지 않도록 종료하며, EB의 프로세스 관리자가 재시작하도록 합니다. 전체 RAM 부족이나 메모리 누수를 해결하는 옵션은 아니므로 배포 후 메모리와 재시작 반복 여부를 확인해야 합니다. 기존 heap/direct/code cache와 RabbitMQ 제한은 유지합니다. 새 유료 리소스는 생성하지 않습니다.

@@ -26,7 +26,13 @@ public class AnalysisJob {
         this.contentType = contentType; this.image = image; this.status = "QUEUED";
         this.createdAt = this.updatedAt = Instant.now();
     }
-    public void processing() { status = "PROCESSING"; updatedAt = Instant.now(); }
+    public void processing() { status = "PROCESSING"; touch(); }
+    public void queued() { status = "QUEUED"; touch(); }
+    public void touch() {
+        Instant now = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
+        updatedAt = now.isAfter(updatedAt) ? now
+                : updatedAt.truncatedTo(java.time.temporal.ChronoUnit.MILLIS).plusMillis(1);
+    }
     public void complete(String json) { status = "COMPLETED"; resultJson = json; image = null; updatedAt = Instant.now(); }
     public void fail(String message) { status = "FAILED"; errorMessage = message; image = null; updatedAt = Instant.now(); }
 }

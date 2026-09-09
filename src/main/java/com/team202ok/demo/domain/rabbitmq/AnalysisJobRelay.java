@@ -16,10 +16,11 @@ import java.time.Instant;
 public class AnalysisJobRelay {
     private final AnalysisJobRepository jobs;
     private final RabbitMqProducer producer;
+    private final AnalysisJobTransitions transitions;
     @Scheduled(fixedDelayString = "${app.rabbitmq.relay-delay-ms:1000}")
     public void relay() {
-        for (String id : jobs.findPendingIds(Instant.now().minusSeconds(1), PageRequest.of(0, 20))) {
-            try { producer.send(id); }
+        for (String id : jobs.findPendingIds(Instant.now().minusSeconds(AnalysisJobTransitions.RECOVERY_SECONDS), PageRequest.of(0, 20))) {
+            try { if (transitions.reserveDispatch(id)) producer.send(id); }
             catch (IllegalStateException e) { log.warn("RabbitMQ unavailable; pending jobs will be retried"); break; }
         }
     }
