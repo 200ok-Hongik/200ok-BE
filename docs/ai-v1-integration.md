@@ -2,6 +2,7 @@
 
 `AiModelResponse`는 AI `POST /analyze`의 `objects[]`, `additionalObjects[]`를 받습니다.
 객체는 `objectId`, `bbox`(xMin/yMin/xMax/yMax), `finalResult`(itemCode/states/source)를 가집니다.
+AI가 초기 분석을 `vlm`으로 보내고 `finalResult`가 없거나 null이면 백엔드는 `vlm.itemCode`와 `vlm.states`를 기존 `finalResult` 응답으로 투영합니다. 이때 `source`는 `VLM`이며 신뢰도로 LOW/HIGH를 추정하지 않습니다. 명시적인 `finalResult`가 있으면 우선합니다. `vlm`과 `review`도 응답에 포함하고 원문 전체를 보존하므로 `review.status=PENDING`을 사용자 확정으로 바꾸지 않습니다. 품목 코드는 변환하지 않으므로 AI가 반환하는 코드가 `trash_categories`에 등록되어 있어야 합니다.
 분석 API 응답은 `scanResultId`, `objects`, `additionalObjects`입니다. 기존 단일 categoryCode/checklistResults 계약을 대체하므로 프론트 수정이 필요합니다.
 
 ## 저장

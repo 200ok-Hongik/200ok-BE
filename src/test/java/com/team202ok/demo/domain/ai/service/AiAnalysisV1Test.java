@@ -30,14 +30,19 @@ class AiAnalysisV1Test {
     @Spy ObjectMapper objectMapper = new ObjectMapper();
     @InjectMocks AiAnalysisServiceImpl service;
 
-    @Test
-    void savesEveryObjectAndPreservesFullResponse() throws Exception {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void savesEveryObjectAndPreservesFullResponse(boolean pendingVlm) throws Exception {
         String raw = """
                 {"objects":[
                   {"objectId":"object_1","bbox":{"xMin":0,"yMin":0,"xMax":100,"yMax":100},"finalResult":{"itemCode":"PET_BOTTLE","states":{"hasLabel":null},"source":"VLM_LOW"}},
                   {"objectId":"object_2","bbox":{"xMin":100,"yMin":0,"xMax":200,"yMax":100},"finalResult":{"itemCode":"CAN","states":{"hasLabel":false},"source":"VLM_HIGH"}}
                 ],"additionalObjects":[{"candidate":1}],"analysisMetadata":"preserve"}
                 """;
+        if (pendingVlm) {
+            raw = raw.replace("\"finalResult\":{\"itemCode\":\"PET_BOTTLE\",\"states\":{\"hasLabel\":null},\"source\":\"VLM_LOW\"}",
+                    "\"finalResult\":null,\"vlm\":{\"itemCode\":\"PET_BOTTLE\",\"states\":{\"hasLabel\":null}},\"review\":{\"status\":\"PENDING\"}");
+        }
         AiModelResponse response = objectMapper.readValue(raw, AiModelResponse.class);
         response.setRawJson(raw);
         var image = new MockMultipartFile("image", "test.jpg", "image/jpeg", new byte[]{1});
@@ -55,6 +60,10 @@ class AiAnalysisV1Test {
         var result = service.analyze(image, 1L);
 
         assertThat(result.objects()).hasSize(2);
+        if (pendingVlm) {
+            assertThat(result.objects().get(0).finalResult().source()).isEqualTo("VLM");
+            assertThat(result.objects().get(0).review().get("status").asText()).isEqualTo("PENDING");
+        }
         assertThat(result.additionalObjects()).hasSize(1);
         ArgumentCaptor<AiScanResult> objects = ArgumentCaptor.forClass(AiScanResult.class);
         verify(aiScanResultRepository, times(2)).save(objects.capture());

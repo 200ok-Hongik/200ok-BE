@@ -45,7 +45,23 @@ public class AiModelResponse {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record DetectedObject(String objectId, Bbox bbox, FinalResult finalResult) {}
+    public record DetectedObject(String objectId, Bbox bbox, FinalResult finalResult,
+                                 VlmResult vlm, JsonNode review) {
+        public DetectedObject {
+            // Compatibility projection for initial AI responses awaiting review.
+            // An explicit finalResult always wins; do not infer LOW/HIGH from confidence.
+            if (finalResult == null && vlm != null) {
+                finalResult = new FinalResult(vlm.itemCode(), vlm.states(), "VLM");
+            }
+        }
+
+        public DetectedObject(String objectId, Bbox bbox, FinalResult finalResult) {
+            this(objectId, bbox, finalResult, null, null);
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record VlmResult(String itemCode, Map<String, JsonNode> states, Double confidence) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Bbox(Double xMin, Double yMin, Double xMax, Double yMax) {
