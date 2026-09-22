@@ -20,7 +20,7 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class AiModelClient {
 
-    private static final Duration ANALYSIS_TIMEOUT = Duration.ofSeconds(120);
+    private static final Duration ANALYSIS_TIMEOUT = Duration.ofSeconds(300);
 
     private final WebClient aiServerWebClient;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
