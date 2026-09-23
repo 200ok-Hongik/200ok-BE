@@ -26,6 +26,8 @@ public class DataInitializer implements CommandLineRunner {
         saveIfNotExists("PAPER", "종이");
         saveIfNotExists("PAPER_PACK", "종이팩");
         saveIfNotExists("STYROFOAM", "스티로폼");
+        // AI가 지원 품목으로 분류하지 못한 경우에도 정상적인 분석 결과로 저장한다.
+        saveIfNotExists("UNKNOWN", "인식 불가");
 
         System.out.println("✅ 기초 마스터 데이터(품목)가 등록되었습니다!");
     }

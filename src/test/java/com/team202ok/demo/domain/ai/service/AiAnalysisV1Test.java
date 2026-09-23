@@ -30,6 +30,35 @@ class AiAnalysisV1Test {
     @Spy ObjectMapper objectMapper = new ObjectMapper();
     @InjectMocks AiAnalysisServiceImpl service;
 
+    @Test
+    void savesUnknownAsAValidAnalysisResult() throws Exception {
+        String raw = """
+                {"objects":[
+                  {"objectId":"object_1","bbox":{"xMin":0,"yMin":0,"xMax":100,"yMax":100},"finalResult":{"itemCode":"UNKNOWN","states":{},"source":"VLM"}}
+                ],"additionalObjects":[]}
+                """;
+        AiModelResponse response = objectMapper.readValue(raw, AiModelResponse.class);
+        response.setRawJson(raw);
+        var image = new MockMultipartFile("image", "test.jpg", "image/jpeg", new byte[]{1});
+        TrashCategory unknown = mock(TrashCategory.class);
+
+        when(aiModelClient.requestAnalysis(image)).thenReturn(response);
+        when(trashCategoryRepository.findByCode("UNKNOWN")).thenReturn(Optional.of(unknown));
+        when(unknown.getId()).thenReturn(9L);
+        when(imageUploader.upload(image)).thenReturn("image-url");
+        when(scanResultRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(aiScanResultRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(transactionTemplate.execute(any())).thenAnswer(i ->
+                ((TransactionCallback<?>) i.getArgument(0)).doInTransaction(null));
+
+        var result = service.analyze(image, 1L);
+
+        assertThat(result.objects()).singleElement()
+                .satisfies(object -> assertThat(object.finalResult().itemCode()).isEqualTo("UNKNOWN"));
+        verify(aiScanResultRepository).save(argThat(saved -> saved.getAiCategoryId().equals(9L)));
+        verify(imageUploader).upload(image);
+    }
+
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
     void savesEveryObjectAndPreservesFullResponse(boolean pendingVlm) throws Exception {
