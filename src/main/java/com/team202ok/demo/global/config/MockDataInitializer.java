@@ -25,16 +25,16 @@ public class MockDataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
 
-        TrashCategory petBottle = trashCategoryRepository.findByCode("PET_BOTTLE")
+        TrashCategory petBottle = trashCategoryRepository.findByCode("CLEAR_PET_BOTTLE")
                 .orElse(null);
 
         if (petBottle == null) {
-            System.out.println("⚠️ PET_BOTTLE 카테고리가 아직 없어 목데이터 초기화를 건너뜁니다.");
+            System.out.println("⚠️ CLEAR_PET_BOTTLE 카테고리가 아직 없어 목데이터 초기화를 건너뜁니다.");
             return;
         }
 
         // item_checklists
-        if (itemChecklistRepository.count() == 0) {
+        if (itemChecklistRepository.findByTrashCategoryIdOrderByDisplayOrder(petBottle.getId()).isEmpty()) {
             itemChecklistRepository.save(ItemChecklist.builder()
                     .trashCategoryId(petBottle.getId())
                     .checkItemName("isTransparent")

@@ -252,10 +252,14 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
     private List<AiRes.Analyze.ChecklistResult> aiStates(AiScanResult ai, Long categoryId) {
         Map<Long, AiScanDetail> details = aiScanDetailRepository.findByAiScanResultId(ai.getId()).stream()
                 .collect(Collectors.toMap(AiScanDetail::getChecklistId, Function.identity()));
+        Map<String, com.fasterxml.jackson.databind.JsonNode> rawStates = rawStates(ai);
         return itemChecklistRepository.findByTrashCategoryIdOrderByDisplayOrder(categoryId).stream().map(c -> {
             AiScanDetail d = details.get(c.getId());
+            com.fasterxml.jackson.databind.JsonNode rawValue = rawStates.get(c.getCheckItemName());
+            String statusValue = d != null ? d.getStatusValue()
+                    : rawValue != null && !rawValue.isNull() && rawValue.isValueNode() ? rawValue.asText() : null;
             return AiRes.Analyze.ChecklistResult.builder().checklistId(c.getId()).checkItemName(c.getCheckItemName())
-                    .statusValue(d == null ? null : d.getStatusValue()).confidence(d == null ? null : d.getConfidence()).build();
+                    .statusValue(statusValue).confidence(d == null ? null : d.getConfidence()).build();
         }).toList();
     }
 
@@ -272,8 +276,29 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
     }
 
     private Map<Long, String> aiStatusMap(AiScanResult ai) {
-        return aiScanDetailRepository.findByAiScanResultId(ai.getId()).stream()
+        Map<Long, String> statuses = aiScanDetailRepository.findByAiScanResultId(ai.getId()).stream()
                 .collect(Collectors.toMap(AiScanDetail::getChecklistId, AiScanDetail::getStatusValue));
+        Map<String, com.fasterxml.jackson.databind.JsonNode> rawStates = rawStates(ai);
+        itemChecklistRepository.findByTrashCategoryIdOrderByDisplayOrder(ai.getAiCategoryId()).forEach(checklist -> {
+            com.fasterxml.jackson.databind.JsonNode value = rawStates.get(checklist.getCheckItemName());
+            if (!statuses.containsKey(checklist.getId()) && value != null && !value.isNull() && value.isValueNode()) {
+                statuses.put(checklist.getId(), value.asText());
+            }
+        });
+        return statuses;
+    }
+
+    private Map<String, com.fasterxml.jackson.databind.JsonNode> rawStates(AiScanResult ai) {
+        if (ai.getRawResponse() == null || ai.getRawResponse().isBlank()) return Map.of();
+        try {
+            AiModelResponse.DetectedObject object = objectMapper.readValue(
+                    ai.getRawResponse(), AiModelResponse.DetectedObject.class);
+            return object.finalResult() == null || object.finalResult().states() == null
+                    ? Map.of() : object.finalResult().states();
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            log.warn("AI rawResponse 상태값 복원 실패: aiScanResultId={}", ai.getId(), e);
+            return Map.of();
+        }
     }
 
 }
