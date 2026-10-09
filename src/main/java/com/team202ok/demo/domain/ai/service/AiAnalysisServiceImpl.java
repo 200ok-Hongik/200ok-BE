@@ -36,6 +36,8 @@ import java.util.stream.Collectors;
 @Transactional
 public class AiAnalysisServiceImpl implements AiAnalysisService {
 
+    private static final String NOT_REGISTERED_MESSAGE = "아직 등록되지 않았습니다.";
+
     private final ImageUploader imageUploader;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
@@ -205,13 +207,31 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
                         .statusValue(statuses.get(c.getId())).guideMessage(c.getGuideMessage())
                         .isSatisfied(!c.isApplicable(statuses.get(c.getId()))).build()).toList();
         User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
-        AiRes.FinalGuide.ScheduleInfo schedule = user.getRegionCode() == null ? null : regionScheduleRepository.findByRegionCode(user.getRegionCode())
-                .map(s -> AiRes.FinalGuide.ScheduleInfo.builder().dischargeDays(s.getDischargeDays()).dischargeTime(s.getDischargeTime()).build()).orElse(null);
+        AiRes.FinalGuide.ScheduleInfo registeredSchedule = user.getRegionCode() == null ? null
+                : regionScheduleRepository.findByRegionCode(user.getRegionCode())
+                        .map(s -> AiRes.FinalGuide.ScheduleInfo.builder()
+                                .dischargeDays(s.getDischargeDays())
+                                .dischargeTime(s.getDischargeTime())
+                                .build())
+                        .orElse(null);
+        AiRes.FinalGuide.ScheduleInfo schedule = registeredSchedule == null
+                ? AiRes.FinalGuide.ScheduleInfo.builder()
+                        .dischargeDays(NOT_REGISTERED_MESSAGE)
+                        .dischargeTime("")
+                        .build()
+                : registeredSchedule;
         String message = decision.getGuideSnapshot();
-        if (schedule != null) message += (message.isBlank() ? "" : " 조치한 후, ") + schedule.dischargeDays() + " " + schedule.dischargeTime() + "에 배출해 주세요.";
+        if (registeredSchedule != null) {
+            message += (message.isBlank() ? "" : " 조치한 후, ") + registeredSchedule.dischargeDays()
+                    + " " + registeredSchedule.dischargeTime() + "에 배출해 주세요.";
+        }
+        if (message.isBlank()) message = NOT_REGISTERED_MESSAGE;
+        String guideMessage = guide == null || guide.getGuideMessage() == null || guide.getGuideMessage().isBlank()
+                ? NOT_REGISTERED_MESSAGE
+                : guide.getGuideMessage();
         return AiRes.DisposalGuideDetail.builder().decisionId(decision.getId()).scanResultId(scanId)
                 .category(category(category, null, decision.getCategorySource())).isPass(decision.getIsPass())
-                .guideMessage(guide == null ? "" : guide.getGuideMessage()).cautionMessage(guide == null ? null : guide.getCautionMessage())
+                .guideMessage(guideMessage).cautionMessage(guide == null ? NOT_REGISTERED_MESSAGE : guide.getCautionMessage())
                 .checkItems(items).schedule(schedule).finalGuideMessage(message).build();
     }
 
