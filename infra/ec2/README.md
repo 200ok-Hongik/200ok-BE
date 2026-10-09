@@ -20,3 +20,10 @@ Create a `development` environment with:
 The AWS role must trust GitHub's OIDC provider and should only permit pushing to the selected ECR repository and sending deployment commands to the selected EC2 instance. The server pulls ECR images using its own instance role, so no permanent AWS access key or SSH private key is stored in GitHub or on EC2.
 
 For S3 image delivery, keep the bucket private and put CloudFront in front of it. Set `S3_PUBLIC_BASE_URL` to the CloudFront domain. The app stores that stable public URL in the database.
+
+## Files
+
+- `compose.yml`: production services (app, MySQL, Redis, RabbitMQ and Caddy)
+- `.env.example`: complete runtime-variable template; the real `.env` stays untracked
+- `deploy.sh`: validates the environment, pulls the selected ECR image and reconciles the services
+- `backup.sh`: uploads MySQL backups to the configured private S3 location

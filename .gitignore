@@ -44,3 +44,9 @@ infra/ec2/.deploy.env
 
 ### macOS ###
 .DS_Store
+
+### Generated workspace artifacts ###
+.codex-*/
+tmp/
+output/
+node_modules/
