@@ -1,72 +1,85 @@
-name: 200ok-BE CI/CD
+name: 200ok-BE EC2 CI/CD
 
 on:
   push:
-    branches: [develop] # develop 브랜치에 직접 push해도 배포되도록
-  pull_request:
-    types: [closed]
-  workflow_dispatch: # 수동 실행도 가능하도록
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: develop-deployment
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
 
 jobs:
-  build:
+  test-build-deploy:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'develop')
-
+    environment: development
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'adopt'
-          cache: 'gradle'
+          distribution: temurin
+          cache: gradle
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
-        shell: bash
+      - name: Test
+        run: ./gradlew test --no-daemon
 
-      - name: Build with Gradle
-        run: ./gradlew clean build
-        shell: bash
-
-      - name: Get current time
-        uses: 1466587594/get-current-time@v2
-        id: current-time
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          format: YYYY-MM-DDTHH-mm-ss
-          utcOffset: "+09:00"
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Show Current Time
-        run: echo "CurrentTime=${{ steps.current-time.outputs.formattedTime }}"
-        shell: bash
+      - name: Log in to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Generate deployment package
-        run: |
-          mkdir -p deploy
-          cp $(ls build/libs/*.jar | grep -v plain) deploy/application.jar
-          cp Procfile deploy/Procfile
-          cp -r .ebextensions-dev deploy/.ebextensions
-          cp -r .platform deploy/.platform
-          cd deploy && zip -r deploy.zip .
-
-      - name: Beanstalk Deploy
-        uses: einaregilsson/beanstalk-deploy@v20
-        with:
-          aws_access_key: ${{ secrets.AWS_ACTION_ACCESS_KEY_ID }}
-          aws_secret_key: ${{ secrets.AWS_ACTION_SECRET_ACCESS_KEY }}
-          application_name: Ssok-200OK-BE
-          environment_name: Ssok-200OK-BE-env
-          version_label: github-action-${{ steps.current-time.outputs.formattedTime }}
-          region: ap-northeast-2
-          deployment_package: deploy/deploy.zip
-          wait_for_deployment: true
-
-      - name: Check local broker capacity report
-        if: always()
+      - name: Build and push image
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACTION_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_ACTION_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ap-northeast-2
-        run: python3 .github/scripts/check-eb-capacity.py
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          image="$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker build --tag "$image" --tag "$REGISTRY/$ECR_REPOSITORY:develop" .
+          docker push "$image"
+          docker push "$REGISTRY/$ECR_REPOSITORY:develop"
+          echo "APP_IMAGE=$image" >> "$GITHUB_ENV"
+
+      - name: Prepare SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+
+      - name: Install deployment files
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ vars.EC2_USER }}
+        run: |
+          ssh_opts=(-i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes)
+          ssh "${ssh_opts[@]}" "$EC2_USER@$EC2_HOST" 'sudo install -d -o "$USER" -g "$USER" /opt/ssok/infra/ec2'
+          scp "${ssh_opts[@]}" infra/ec2/{compose.yml,Caddyfile,deploy.sh,backup.sh} "$EC2_USER@$EC2_HOST:/opt/ssok/infra/ec2/"
+
+      - name: Deploy on EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ vars.EC2_USER }}
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          ssh_opts=(-i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes)
+          ssh "${ssh_opts[@]}" "$EC2_USER@$EC2_HOST" "aws ecr get-login-password --region '$AWS_REGION' | docker login --username AWS --password-stdin '$ECR_REGISTRY' && cd /opt/ssok/infra/ec2 && chmod +x deploy.sh backup.sh && ./deploy.sh '$APP_IMAGE'"

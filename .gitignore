@@ -40,6 +40,7 @@ out/
 .env
 .env.*
 !.env.example
+infra/ec2/.deploy.env
 
 ### macOS ###
 .DS_Store

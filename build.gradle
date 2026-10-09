@@ -32,6 +32,8 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 	implementation("com.openai:openai-java:4.41.0")
 	implementation 'org.jsoup:jsoup:1.17.2'
+	implementation platform('software.amazon.awssdk:bom:2.31.77')
+	implementation 'software.amazon.awssdk:s3'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.h2database:h2'
 	runtimeOnly 'io.netty:netty-resolver-dns-native-macos:4.1.119.Final:osx-aarch_64'

@@ -1,11 +1,13 @@
 package com.team202ok.demo.domain.ai.service;
 
 import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
 @Component
+@ConditionalOnProperty(name = "storage.s3.enabled", havingValue = "false", matchIfMissing = true)
 public class FakeImageUploader implements ImageUploader {
 
     @Override

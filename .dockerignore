@@ -1,0 +1,10 @@
+**
+!gradlew
+!settings.gradle
+!build.gradle
+!gradle/
+!gradle/**
+!src/
+!src/**
+src/test/
+src/main/resources/application-local.properties
