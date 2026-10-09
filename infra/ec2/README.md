@@ -1,6 +1,6 @@
 # EC2 deployment
 
-The development workflow builds the application image, pushes it to ECR and deploys it to EC2 through AWS Systems Manager. MySQL and Redis remain private Docker services, the application binds to localhost, and Caddy is the only public container.
+The development workflow builds the application image, pushes it to ECR and deploys it to EC2 through AWS Systems Manager. MySQL, Redis and RabbitMQ remain private Docker services, the application binds to localhost, and Caddy is the only public container. Runtime configuration is kept in the server-only `.env` file; Compose does not duplicate application settings.
 
 ## Server prerequisites
 
@@ -8,7 +8,7 @@ The development workflow builds the application image, pushes it to ECR and depl
 - An EC2 instance role that can pull images from the selected ECR repository and put objects in the scan-image and backup S3 locations
 - `/opt/ssok/infra/ec2/.env`, copied from `.env.example`, owned by the deployment user and mode `600`
 
-Do not make MySQL or Redis ports public. Persistent Docker volumes survive normal deployments; never run `docker compose down -v` unless deleting the data intentionally.
+Do not make MySQL, Redis or RabbitMQ ports public. Persistent Docker volumes survive normal deployments; never run `docker compose down -v` unless deleting the data intentionally.
 
 ## GitHub environment
 
