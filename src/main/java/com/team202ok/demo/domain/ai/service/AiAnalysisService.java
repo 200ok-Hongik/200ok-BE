@@ -12,9 +12,17 @@ public interface AiAnalysisService {
 
     AiRes.ScanDetail getScan(Long scanId, Long userId);
 
+    AiRes.Analyze getScanObjects(Long scanId, Long userId);
+
+    AiRes.ScanDetail getScanObject(Long scanId, String objectId, Long userId);
+
     AiRes.ConfirmedResult updateResult(Long scanId, AiReq.UpdateResult request, Long userId);
 
+    AiRes.ConfirmedResult updateObjectResult(Long scanId, String objectId, AiReq.UpdateResult request, Long userId);
+
     AiRes.DisposalGuideDetail getDisposalGuide(Long scanId, Long userId);
+
+    AiRes.DisposalGuideDetail getObjectDisposalGuide(Long scanId, String objectId, Long userId);
 
     void createComment(Long scanId, String comment, Long userId);
 }

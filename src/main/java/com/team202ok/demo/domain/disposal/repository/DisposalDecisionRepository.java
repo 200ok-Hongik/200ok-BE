@@ -6,4 +6,5 @@ import java.util.Optional;
 
 public interface DisposalDecisionRepository extends JpaRepository<DisposalDecision, Long> {
     Optional<DisposalDecision> findFirstByScanResultIdOrderByCreatedAtDesc(Long scanResultId);
+    Optional<DisposalDecision> findFirstByScanResultIdAndObjectIdOrderByCreatedAtDesc(Long scanResultId, String objectId);
 }

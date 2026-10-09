@@ -28,6 +28,9 @@ public class DisposalDecision extends BaseCreatedAtEntity {
             foreignKey = @ForeignKey(name = "fk_disposal_decisions_scan"))
     private ScanResult scanResult;
 
+    @Column(name = "object_id", length = 255)
+    private String objectId;
+
     @Column(name = "user_feedback_id", nullable = false)
     private Long userFeedbackId;
 
@@ -54,9 +57,10 @@ public class DisposalDecision extends BaseCreatedAtEntity {
     private String guideSnapshot;
 
     @Builder
-    private DisposalDecision(Long scanResultId, Long userFeedbackId, Long appliedCategoryId,
+    private DisposalDecision(Long scanResultId, String objectId, Long userFeedbackId, Long appliedCategoryId,
                              String categorySource, Boolean isPass, String guideSnapshot) {
         this.scanResultId = scanResultId;
+        this.objectId = objectId;
         this.userFeedbackId = userFeedbackId;
         this.appliedCategoryId = appliedCategoryId;
         this.categorySource = categorySource;

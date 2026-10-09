@@ -27,6 +27,20 @@ public class ScanController {
         return aiAnalysisService.getScan(scanResultId, userId);
     }
 
+    @GetMapping("/{scanResultId}/objects")
+    @Operation(summary = "스캔 객체 목록 조회", description = "다중 객체와 추가 후보를 포함한 AI 분석 결과를 조회합니다.")
+    public AiRes.Analyze getScanObjects(@PathVariable Long scanResultId,
+                                        @Parameter(hidden = true) @AuthenticationPrincipal Long userId) {
+        return aiAnalysisService.getScanObjects(scanResultId, userId);
+    }
+
+    @GetMapping("/{scanResultId}/objects/{objectId}")
+    @Operation(summary = "스캔 객체 상세 조회", description = "objectId로 특정 AI 분석 객체를 조회합니다.")
+    public AiRes.ScanDetail getScanObject(@PathVariable Long scanResultId, @PathVariable String objectId,
+                                          @Parameter(hidden = true) @AuthenticationPrincipal Long userId) {
+        return aiAnalysisService.getScanObject(scanResultId, objectId, userId);
+    }
+
     @PatchMapping("/{scanResultId}/result")
     @Operation(summary = "분석 결과 수정 및 확정", description = "품목과 체크 상태를 수정하여 최종 분리배출 판단을 저장합니다.")
     public AiRes.ConfirmedResult updateResult(@Parameter(description = "스캔 결과 ID", example = "1") @PathVariable Long scanResultId,
@@ -35,11 +49,26 @@ public class ScanController {
         return aiAnalysisService.updateResult(scanResultId, request, userId);
     }
 
+    @PatchMapping("/{scanResultId}/objects/{objectId}/result")
+    @Operation(summary = "객체별 분석 결과 수정 및 확정")
+    public AiRes.ConfirmedResult updateObjectResult(@PathVariable Long scanResultId, @PathVariable String objectId,
+                                                     @Parameter(hidden = true) @AuthenticationPrincipal Long userId,
+                                                     @RequestBody AiReq.UpdateResult request) {
+        return aiAnalysisService.updateObjectResult(scanResultId, objectId, request, userId);
+    }
+
     @GetMapping("/{scanResultId}/disposal-guide")
     @Operation(summary = "최종 분리배출 안내 조회", description = "확정된 품목·상태, 품목별 가이드, 사용자 지역 배출 일정을 결합해 반환합니다.")
     public AiRes.DisposalGuideDetail getDisposalGuide(@Parameter(description = "스캔 결과 ID", example = "1") @PathVariable Long scanResultId,
                                                        @Parameter(hidden = true) @AuthenticationPrincipal Long userId) {
         return aiAnalysisService.getDisposalGuide(scanResultId, userId);
+    }
+
+    @GetMapping("/{scanResultId}/objects/{objectId}/disposal-guide")
+    @Operation(summary = "객체별 최종 분리배출 안내 조회")
+    public AiRes.DisposalGuideDetail getObjectDisposalGuide(@PathVariable Long scanResultId, @PathVariable String objectId,
+                                                             @Parameter(hidden = true) @AuthenticationPrincipal Long userId) {
+        return aiAnalysisService.getObjectDisposalGuide(scanResultId, objectId, userId);
     }
 
     @PostMapping("/{scanResultId}/comments")

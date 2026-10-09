@@ -139,9 +139,39 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
         requireLegacySingleObject(scan);
         AiScanResult ai = aiScanResultRepository.findFirstByScanResultIdOrderByCreatedAtDesc(scanId)
                 .orElseThrow(() -> new ProjectException(GeneralErrorCode.NOT_FOUND, "AI 분석 결과를 찾을 수 없습니다."));
+        return scanDetail(scan, ai, null);
+    }
+
+    @Override
+    public AiRes.Analyze getScanObjects(Long scanId, Long userId) {
+        ScanResult scan = getOwnedScan(scanId, userId);
+        if (scan.getAiRawResponse() == null || scan.getAiRawResponse().isBlank()) {
+            throw new ProjectException(GeneralErrorCode.NOT_FOUND, "다중 객체 AI 분석 결과를 찾을 수 없습니다.");
+        }
+        try {
+            AiModelResponse response = objectMapper.readValue(scan.getAiRawResponse(), AiModelResponse.class);
+            response.validate();
+            return AiRes.Analyze.builder().scanResultId(scanId).objects(response.getObjects())
+                    .additionalObjects(response.getAdditionalObjects()).build();
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("저장된 AI 응답을 읽을 수 없습니다.", e);
+        }
+    }
+
+    @Override
+    public AiRes.ScanDetail getScanObject(Long scanId, String objectId, Long userId) {
+        ScanResult scan = getOwnedScan(scanId, userId);
+        AiScanResult ai = getAiObject(scanId, objectId);
+        return scanDetail(scan, ai, objectId);
+    }
+
+    private AiRes.ScanDetail scanDetail(ScanResult scan, AiScanResult ai, String objectId) {
         TrashCategory category = trashCategoryRepository.findById(ai.getAiCategoryId())
                 .orElseThrow(() -> new CategoryNotFoundException(String.valueOf(ai.getAiCategoryId())));
-        AiRes.ScanDetail.UserResult userResult = disposalDecisionRepository.findFirstByScanResultIdOrderByCreatedAtDesc(scanId)
+        java.util.Optional<DisposalDecision> decision = objectId == null
+                ? disposalDecisionRepository.findFirstByScanResultIdOrderByCreatedAtDesc(scan.getId())
+                : disposalDecisionRepository.findFirstByScanResultIdAndObjectIdOrderByCreatedAtDesc(scan.getId(), objectId);
+        AiRes.ScanDetail.UserResult userResult = decision
                 .map(d -> {
                     TrashCategory confirmedCategory = trashCategoryRepository.findById(d.getAppliedCategoryId())
                             .orElseThrow(() -> new CategoryNotFoundException(String.valueOf(d.getAppliedCategoryId())));
@@ -160,6 +190,16 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
         requireLegacySingleObject(getOwnedScan(scanId, userId));
         AiScanResult ai = aiScanResultRepository.findFirstByScanResultIdOrderByCreatedAtDesc(scanId)
                 .orElseThrow(() -> new ProjectException(GeneralErrorCode.NOT_FOUND, "AI 분석 결과를 찾을 수 없습니다."));
+        return updateResult(scanId, null, ai, request);
+    }
+
+    @Override
+    public AiRes.ConfirmedResult updateObjectResult(Long scanId, String objectId, AiReq.UpdateResult request, Long userId) {
+        getOwnedScan(scanId, userId);
+        return updateResult(scanId, objectId, getAiObject(scanId, objectId), request);
+    }
+
+    private AiRes.ConfirmedResult updateResult(Long scanId, String objectId, AiScanResult ai, AiReq.UpdateResult request) {
         Long categoryId = request.categoryId() == null ? ai.getAiCategoryId() : request.categoryId();
         TrashCategory category = trashCategoryRepository.findById(categoryId)
                 .orElseThrow(() -> new CategoryNotFoundException(String.valueOf(categoryId)));
@@ -183,7 +223,7 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
         List<String> steps = checklists.stream().filter(c -> c.isApplicable(finalStatuses.get(c.getId())))
                 .map(ItemChecklist::getGuideMessage).toList();
         String source = correctedCategoryId == null ? "AI" : "USER";
-        DisposalDecision decision = disposalDecisionRepository.save(DisposalDecision.builder().scanResultId(scanId)
+        DisposalDecision decision = disposalDecisionRepository.save(DisposalDecision.builder().scanResultId(scanId).objectId(objectId)
                 .userFeedbackId(feedback.getId()).appliedCategoryId(categoryId).categorySource(source)
                 .isPass(isPass).guideSnapshot(String.join(" / ", steps)).build());
         checklists.forEach(checklist -> disposalDecisionDetailRepository.save(DisposalDecisionDetail.builder()
@@ -198,6 +238,20 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
         getOwnedScan(scanId, userId);
         DisposalDecision decision = disposalDecisionRepository.findFirstByScanResultIdOrderByCreatedAtDesc(scanId)
                 .orElseThrow(() -> new ProjectException(GeneralErrorCode.NOT_FOUND, "확정된 분석 결과를 찾을 수 없습니다."));
+        return disposalGuide(scanId, userId, decision);
+    }
+
+    @Override
+    public AiRes.DisposalGuideDetail getObjectDisposalGuide(Long scanId, String objectId, Long userId) {
+        getOwnedScan(scanId, userId);
+        getAiObject(scanId, objectId);
+        DisposalDecision decision = disposalDecisionRepository
+                .findFirstByScanResultIdAndObjectIdOrderByCreatedAtDesc(scanId, objectId)
+                .orElseThrow(() -> new ProjectException(GeneralErrorCode.NOT_FOUND, "확정된 객체 분석 결과를 찾을 수 없습니다."));
+        return disposalGuide(scanId, userId, decision);
+    }
+
+    private AiRes.DisposalGuideDetail disposalGuide(Long scanId, Long userId, DisposalDecision decision) {
         TrashCategory category = trashCategoryRepository.findById(decision.getAppliedCategoryId())
                 .orElseThrow(() -> new CategoryNotFoundException(String.valueOf(decision.getAppliedCategoryId())));
         DisposalGuide guide = disposalGuideRepository.findByTrashCategoryIdAndIsActiveTrue(category.getId()).orElse(null);
@@ -233,6 +287,11 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
                 .category(category(category, null, decision.getCategorySource())).isPass(decision.getIsPass())
                 .guideMessage(guideMessage).cautionMessage(guide == null ? NOT_REGISTERED_MESSAGE : guide.getCautionMessage())
                 .checkItems(items).schedule(schedule).finalGuideMessage(message).build();
+    }
+
+    private AiScanResult getAiObject(Long scanId, String objectId) {
+        return aiScanResultRepository.findByScanResultIdAndObjectId(scanId, objectId)
+                .orElseThrow(() -> new ProjectException(GeneralErrorCode.NOT_FOUND, "AI 분석 객체를 찾을 수 없습니다."));
     }
 
     @Override
