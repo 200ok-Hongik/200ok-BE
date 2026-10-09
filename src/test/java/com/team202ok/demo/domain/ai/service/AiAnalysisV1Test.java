@@ -70,7 +70,7 @@ class AiAnalysisV1Test {
                 """;
         if (pendingVlm) {
             raw = raw.replace("\"finalResult\":{\"itemCode\":\"PET_BOTTLE\",\"states\":{\"hasLabel\":null},\"source\":\"VLM_LOW\"}",
-                    "\"finalResult\":null,\"vlm\":{\"itemCode\":\"PET_BOTTLE\",\"states\":{\"hasLabel\":null}},\"review\":{\"status\":\"PENDING\"}");
+                    "\"finalResult\":null,\"vlm\":{\"itemCode\":\"PET_BOTTLE\",\"confidence\":0.92,\"states\":{\"hasLabel\":null}},\"review\":{\"status\":\"PENDING\"}");
         }
         AiModelResponse response = objectMapper.readValue(raw, AiModelResponse.class);
         response.setRawJson(raw);
@@ -97,7 +97,12 @@ class AiAnalysisV1Test {
         ArgumentCaptor<AiScanResult> objects = ArgumentCaptor.forClass(AiScanResult.class);
         verify(aiScanResultRepository, times(2)).save(objects.capture());
         assertThat(objects.getAllValues()).extracting(AiScanResult::getObjectId).containsExactly("object_1", "object_2");
-        assertThat(objects.getAllValues()).allSatisfy(o -> assertThat(o.getConfidence()).isNull());
+        if (pendingVlm) {
+            assertThat(objects.getAllValues().get(0).getConfidence()).isEqualByComparingTo("0.92");
+        } else {
+            assertThat(objects.getAllValues().get(0).getConfidence()).isNull();
+        }
+        assertThat(objects.getAllValues().get(1).getConfidence()).isNull();
         assertThat(objects.getAllValues().get(1).getRawResponse()).contains("VLM_HIGH", "bbox", "false");
         ArgumentCaptor<ScanResult> scan = ArgumentCaptor.forClass(ScanResult.class);
         verify(scanResultRepository).save(scan.capture());

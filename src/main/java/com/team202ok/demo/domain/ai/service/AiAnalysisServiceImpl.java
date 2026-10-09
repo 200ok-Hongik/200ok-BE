@@ -87,7 +87,8 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
                 }
                 AiScanResult ai = aiScanResultRepository.save(AiScanResult.builder()
                         .scanResultId(scan.getId()).objectId(object.objectId())
-                        .aiCategoryId(category.getId()).rawResponse(rawObject).build());
+                        .aiCategoryId(category.getId()).confidence(vlmConfidence(object))
+                        .rawResponse(rawObject).build());
                 // Compatibility projection for existing checklist-based readers only.
                 // Full typed states, bbox and source are retained in rawResponse.
                 for (ItemChecklist checklist : itemChecklistRepository
@@ -326,6 +327,11 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
     private AiRes.ScanDetail.Category category(TrashCategory category, BigDecimal confidence, String source) {
         return AiRes.ScanDetail.Category.builder().categoryId(category.getId()).code(category.getCode()).name(category.getName())
                 .confidence(confidence).categorySource(source).build();
+    }
+
+    private BigDecimal vlmConfidence(AiModelResponse.DetectedObject object) {
+        return object.vlm() == null || object.vlm().confidence() == null
+                ? null : BigDecimal.valueOf(object.vlm().confidence());
     }
 
     private List<AiRes.Analyze.ChecklistResult> aiStates(AiScanResult ai, Long categoryId) {

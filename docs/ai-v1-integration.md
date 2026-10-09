@@ -10,7 +10,7 @@ AI가 초기 분석을 `vlm`으로 보내고 `finalResult`가 없거나 null이�
 - `scan_results.ai_raw_response`: AI 원문 전체. 탐지 0개, 추가 후보와 알 수 없는 분석 메타데이터도 보존합니다.
 - `ai_scan_results`: 확정 탐지 객체당 한 행. `object_id`로 사진 내 객체를 식별합니다.
 - 각 행의 `raw_response`: 해당 객체의 bbox, finalResult를 JSON으로 저장합니다.
-- 기존 confidence/model_version은 V1 예시에 없으므로 null입니다. source로 신뢰도를 추정하지 않습니다.
+- `vlm.confidence`는 `ai_scan_results.confidence`에 0~1 값으로 저장합니다. 값이 없으면 null이며 source로 신뢰도를 추정하지 않습니다. model_version은 V1 저장 대상이 아니므로 null입니다.
 - 기존 체크리스트 조회를 지원하기 위해 일치하는 상태 키만 AI_SCAN_DETAILS에 투영합니다. 상태 전체는 JSON에 남습니다.
 - 전체 객체의 DB 쓰기는 하나의 트랜잭션입니다. 외부 AI 호출과 이미지 업로드는 트랜잭션 밖에서 수행합니다.
 

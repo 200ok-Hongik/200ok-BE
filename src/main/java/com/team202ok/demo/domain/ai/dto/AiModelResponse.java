@@ -40,6 +40,12 @@ public class AiModelResponse {
             if (result.itemCode() == null || result.itemCode().isBlank()) errors.add(path + ".finalResult.itemCode: missing/blank");
             if (result.states() == null) errors.add(path + ".finalResult.states: missing/null");
             if (result.source() == null || result.source().isBlank()) errors.add(path + ".finalResult.source: missing/blank");
+            if (object.vlm() != null && object.vlm().confidence() != null) {
+                double confidence = object.vlm().confidence();
+                if (!Double.isFinite(confidence) || confidence < 0 || confidence > 1) {
+                    errors.add(path + ".vlm.confidence: requires a finite value between 0 and 1; actual=" + confidence);
+                }
+            }
         }
         if (!errors.isEmpty()) throw new IllegalArgumentException("Invalid AI V1 response: " + String.join("; ", errors));
     }

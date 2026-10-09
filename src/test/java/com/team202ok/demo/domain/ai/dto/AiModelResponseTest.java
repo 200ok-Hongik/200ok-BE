@@ -29,10 +29,23 @@ class AiModelResponseTest {
         assertThat(object.finalResult().source()).isEqualTo("VLM");
         assertThat(object.finalResult().states().get("hasLabel").booleanValue()).isTrue();
         assertThat(object.finalResult().states().get("isContaminated").booleanValue()).isFalse();
+        assertThat(object.vlm().confidence()).isEqualTo(0.92);
         assertThat(object.review().get("status").asText()).isEqualTo("PENDING");
         var roundTrip = mapper.readValue(mapper.writeValueAsString(response), AiModelResponse.class);
         roundTrip.validate();
         assertThat(roundTrip.getObjects().get(0)).isEqualTo(object);
+    }
+
+    @Test
+    void rejectsVlmConfidenceOutsideProbabilityRange() throws Exception {
+        var response = mapper.readValue("""
+                {"objects":[{"objectId":"one","bbox":{"xMin":0,"yMin":0,"xMax":10,"yMax":10},
+                  "vlm":{"itemCode":"CAN","confidence":1.1,"states":{}},"finalResult":null}],
+                 "additionalObjects":[]}
+                """, AiModelResponse.class);
+
+        assertThatIllegalArgumentException().isThrownBy(response::validate)
+                .withMessageContaining("vlm.confidence");
     }
 
     @Test
