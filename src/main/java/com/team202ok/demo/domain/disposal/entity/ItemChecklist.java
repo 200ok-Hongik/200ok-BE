@@ -51,4 +51,16 @@ public class ItemChecklist extends BaseCreatedAtEntity {
     public boolean isApplicable(String statusValue) {
         return this.triggerValue == null || this.triggerValue.equals(statusValue);
     }
+
+    public boolean matchesDefinition(String guideMessage, Integer displayOrder, String triggerValue) {
+        return java.util.Objects.equals(this.guideMessage, guideMessage)
+                && java.util.Objects.equals(this.displayOrder, displayOrder)
+                && java.util.Objects.equals(this.triggerValue, triggerValue);
+    }
+
+    public void updateDefinition(String guideMessage, Integer displayOrder, String triggerValue) {
+        this.guideMessage = guideMessage;
+        this.displayOrder = displayOrder;
+        this.triggerValue = triggerValue;
+    }
 }

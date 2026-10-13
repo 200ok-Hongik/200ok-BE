@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,33 +31,45 @@ class DisposalDataInitializerTest {
     @InjectMocks DisposalDataInitializer initializer;
 
     @Test
-    void registersConditionBasedClearPetBottleGuides() {
-        TrashCategory category = TrashCategory.builder().code("CLEAR_PET_BOTTLE").name("무색 페트병").build();
-        when(trashCategoryRepository.findByCode("CLEAR_PET_BOTTLE")).thenReturn(Optional.of(category));
+    void registersConditionBasedGuidesForEverySupportedCategory() {
+        AtomicLong ids = new AtomicLong(1);
+        when(trashCategoryRepository.findByCode(any())).thenAnswer(invocation -> {
+            String code = invocation.getArgument(0);
+            TrashCategory category = org.mockito.Mockito.mock(TrashCategory.class);
+            when(category.getId()).thenReturn(ids.getAndIncrement());
+            return Optional.of(category);
+        });
         when(disposalGuideRepository.findByTrashCategoryIdAndIsActiveTrue(any())).thenReturn(Optional.empty());
 
         initializer.run();
 
         ArgumentCaptor<ItemChecklist> checklists = ArgumentCaptor.forClass(ItemChecklist.class);
-        verify(itemChecklistRepository, org.mockito.Mockito.times(6)).save(checklists.capture());
+        verify(itemChecklistRepository, org.mockito.Mockito.times(34)).save(checklists.capture());
         assertThat(checklists.getAllValues())
                 .extracting(ItemChecklist::getCheckItemName, ItemChecklist::getTriggerValue,
                         ItemChecklist::getGuideMessage, ItemChecklist::getDisplayOrder)
-                .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple("isTransparent", "false", "투명 페트병인지 확인하세요", 1),
+                .contains(
+                        org.assertj.core.groups.Tuple.tuple("isTransparent", "false", "투명 페트병이 아니면 일반 플라스틱류로 분리배출하세요", 1),
                         org.assertj.core.groups.Tuple.tuple("hasLabel", "true", "라벨을 제거하세요", 2),
                         org.assertj.core.groups.Tuple.tuple("isEmpty", "false", "내용물을 비우고 헹구세요", 3),
-                        org.assertj.core.groups.Tuple.tuple("hasCap", "true", "뚜껑을 분리하세요", 4),
                         org.assertj.core.groups.Tuple.tuple("isContaminated", "true", "이물질을 제거하고 깨끗이 헹구세요", 5),
-                        org.assertj.core.groups.Tuple.tuple("isCrushed", "false", "페트병을 압착하세요", 6));
-        verify(disposalGuideRepository).save(any(DisposalGuide.class));
+                        org.assertj.core.groups.Tuple.tuple("isCrushed", "false", "페트병을 압착하세요", 6),
+                        org.assertj.core.groups.Tuple.tuple("hasTape", "true", "테이프와 택배송장 등 종이가 아닌 재질을 제거하세요", 3),
+                        org.assertj.core.groups.Tuple.tuple("hasStraw", "true", "빨대를 분리하세요", 2),
+                        org.assertj.core.groups.Tuple.tuple("isFlattened", "false", "물기를 말린 뒤 펼치거나 압착하세요", 5),
+                        org.assertj.core.groups.Tuple.tuple("hasLabel", "true", "상표를 제거하세요", 1));
+        verify(disposalGuideRepository, org.mockito.Mockito.times(8)).save(any(DisposalGuide.class));
     }
 
     @Test
     void doesNotDuplicateExistingData() {
-        TrashCategory category = TrashCategory.builder().code("CLEAR_PET_BOTTLE").name("무색 페트병").build();
-        when(trashCategoryRepository.findByCode("CLEAR_PET_BOTTLE")).thenReturn(Optional.of(category));
-        when(itemChecklistRepository.existsByTrashCategoryIdAndCheckItemName(any(), any())).thenReturn(true);
+        TrashCategory category = org.mockito.Mockito.mock(TrashCategory.class);
+        when(category.getId()).thenReturn(1L);
+        when(trashCategoryRepository.findByCode(any())).thenReturn(Optional.of(category));
+        ItemChecklist existingChecklist = org.mockito.Mockito.mock(ItemChecklist.class);
+        when(existingChecklist.matchesDefinition(any(), any(), any())).thenReturn(true);
+        when(itemChecklistRepository.findByTrashCategoryIdAndCheckItemName(any(), any()))
+                .thenReturn(Optional.of(existingChecklist));
         when(disposalGuideRepository.findByTrashCategoryIdAndIsActiveTrue(any()))
                 .thenReturn(Optional.of(org.mockito.Mockito.mock(DisposalGuide.class)));
 
