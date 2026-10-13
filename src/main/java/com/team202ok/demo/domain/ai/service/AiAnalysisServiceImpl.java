@@ -176,8 +176,10 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
                 .map(d -> {
                     TrashCategory confirmedCategory = trashCategoryRepository.findById(d.getAppliedCategoryId())
                             .orElseThrow(() -> new CategoryNotFoundException(String.valueOf(d.getAppliedCategoryId())));
+                    BigDecimal confidence = d.getAppliedCategoryId().equals(ai.getAiCategoryId())
+                            ? ai.getConfidence() : null;
                     return AiRes.ScanDetail.UserResult.builder().decisionId(d.getId())
-                            .category(category(confirmedCategory, null, d.getCategorySource()))
+                            .category(category(confirmedCategory, confidence, d.getCategorySource()))
                             .isPass(d.getIsPass()).states(decisionStates(d, confirmedCategory)).build();
                 })
                 .orElse(null);
@@ -230,7 +232,8 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
         checklists.forEach(checklist -> disposalDecisionDetailRepository.save(DisposalDecisionDetail.builder()
                 .disposalDecisionId(decision.getId()).checklistId(checklist.getId())
                 .statusValue(finalStatuses.get(checklist.getId())).build()));
-        return AiRes.ConfirmedResult.builder().scanResultId(scanId).category(category(category, null, source))
+        BigDecimal confidence = categoryId.equals(ai.getAiCategoryId()) ? ai.getConfidence() : null;
+        return AiRes.ConfirmedResult.builder().scanResultId(scanId).category(category(category, confidence, source))
                 .states(decisionStates(decision, category)).isConfirmed(true).decisionId(decision.getId()).build();
     }
 
@@ -284,10 +287,20 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
         String guideMessage = guide == null || guide.getGuideMessage() == null || guide.getGuideMessage().isBlank()
                 ? NOT_REGISTERED_MESSAGE
                 : guide.getGuideMessage();
+        BigDecimal confidence = decisionConfidence(decision);
         return AiRes.DisposalGuideDetail.builder().decisionId(decision.getId()).scanResultId(scanId)
-                .category(category(category, null, decision.getCategorySource())).isPass(decision.getIsPass())
+                .category(category(category, confidence, decision.getCategorySource())).isPass(decision.getIsPass())
                 .guideMessage(guideMessage).cautionMessage(guide == null ? NOT_REGISTERED_MESSAGE : guide.getCautionMessage())
                 .checkItems(items).schedule(schedule).finalGuideMessage(message).build();
+    }
+
+    private BigDecimal decisionConfidence(DisposalDecision decision) {
+        java.util.Optional<AiScanResult> ai = decision.getObjectId() == null
+                ? aiScanResultRepository.findFirstByScanResultIdOrderByCreatedAtDesc(decision.getScanResultId())
+                : aiScanResultRepository.findByScanResultIdAndObjectId(decision.getScanResultId(), decision.getObjectId());
+        return ai.filter(result -> result.getAiCategoryId().equals(decision.getAppliedCategoryId()))
+                .map(AiScanResult::getConfidence)
+                .orElse(null);
     }
 
     private AiScanResult getAiObject(Long scanId, String objectId) {
@@ -330,8 +343,7 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
     }
 
     private BigDecimal vlmConfidence(AiModelResponse.DetectedObject object) {
-        return object.vlm() == null || object.vlm().confidence() == null
-                ? null : BigDecimal.valueOf(object.vlm().confidence());
+        return object.confidence() == null ? null : BigDecimal.valueOf(object.confidence());
     }
 
     private List<AiRes.Analyze.ChecklistResult> aiStates(AiScanResult ai, Long categoryId) {

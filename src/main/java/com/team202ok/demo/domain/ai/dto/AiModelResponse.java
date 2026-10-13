@@ -2,6 +2,7 @@ package com.team202ok.demo.domain.ai.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -40,10 +41,10 @@ public class AiModelResponse {
             if (result.itemCode() == null || result.itemCode().isBlank()) errors.add(path + ".finalResult.itemCode: missing/blank");
             if (result.states() == null) errors.add(path + ".finalResult.states: missing/null");
             if (result.source() == null || result.source().isBlank()) errors.add(path + ".finalResult.source: missing/blank");
-            if (object.vlm() != null && object.vlm().confidence() != null) {
-                double confidence = object.vlm().confidence();
+            if (object.confidence() != null) {
+                double confidence = object.confidence();
                 if (!Double.isFinite(confidence) || confidence < 0 || confidence > 1) {
-                    errors.add(path + ".vlm.confidence: requires a finite value between 0 and 1; actual=" + confidence);
+                    errors.add(path + ".confidence: requires a finite value between 0 and 1; actual=" + confidence);
                 }
             }
         }
@@ -57,12 +58,23 @@ public class AiModelResponse {
             // Compatibility projection for initial AI responses awaiting review.
             // An explicit finalResult always wins; do not infer LOW/HIGH from confidence.
             if (finalResult == null && vlm != null) {
-                finalResult = new FinalResult(vlm.itemCode(), vlm.states(), "VLM");
+                finalResult = new FinalResult(vlm.itemCode(), vlm.states(), "VLM", vlm.confidence());
+            } else if (finalResult != null && finalResult.confidence() == null
+                    && vlm != null && vlm.confidence() != null) {
+                finalResult = new FinalResult(finalResult.itemCode(), finalResult.states(),
+                        finalResult.source(), vlm.confidence());
             }
         }
 
         public DetectedObject(String objectId, Bbox bbox, FinalResult finalResult) {
             this(objectId, bbox, finalResult, null, null);
+        }
+
+        /** Stable display field regardless of whether AI finalized the result or review is pending. */
+        @JsonProperty("confidence")
+        public Double confidence() {
+            if (finalResult != null && finalResult.confidence() != null) return finalResult.confidence();
+            return vlm == null ? null : vlm.confidence();
         }
     }
 
@@ -80,5 +92,10 @@ public class AiModelResponse {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record FinalResult(String itemCode, Map<String, JsonNode> states, String source) {}
+    public record FinalResult(String itemCode, Map<String, JsonNode> states, String source,
+                              Double confidence) {
+        public FinalResult(String itemCode, Map<String, JsonNode> states, String source) {
+            this(itemCode, states, source, null);
+        }
+    }
 }

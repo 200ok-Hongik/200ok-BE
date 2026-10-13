@@ -1,6 +1,7 @@
 package com.team202ok.demo.domain.ai.dto;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;
 
@@ -29,8 +30,13 @@ class AiModelResponseTest {
         assertThat(object.finalResult().source()).isEqualTo("VLM");
         assertThat(object.finalResult().states().get("hasLabel").booleanValue()).isTrue();
         assertThat(object.finalResult().states().get("isContaminated").booleanValue()).isFalse();
+        assertThat(object.finalResult().confidence()).isEqualTo(0.92);
+        assertThat(object.confidence()).isEqualTo(0.92);
         assertThat(object.vlm().confidence()).isEqualTo(0.92);
         assertThat(object.review().get("status").asText()).isEqualTo("PENDING");
+        JsonNode responseJson = mapper.valueToTree(response);
+        assertThat(responseJson.at("/objects/0/confidence").doubleValue()).isEqualTo(0.92);
+        assertThat(responseJson.at("/objects/0/finalResult/confidence").doubleValue()).isEqualTo(0.92);
         var roundTrip = mapper.readValue(mapper.writeValueAsString(response), AiModelResponse.class);
         roundTrip.validate();
         assertThat(roundTrip.getObjects().get(0)).isEqualTo(object);
@@ -45,7 +51,7 @@ class AiModelResponseTest {
                 """, AiModelResponse.class);
 
         assertThatIllegalArgumentException().isThrownBy(response::validate)
-                .withMessageContaining("vlm.confidence");
+                .withMessageContaining("confidence");
     }
 
     @Test
