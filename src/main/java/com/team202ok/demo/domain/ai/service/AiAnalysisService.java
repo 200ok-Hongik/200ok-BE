@@ -4,6 +4,9 @@ import com.team202ok.demo.domain.ai.dto.AiReq;
 import com.team202ok.demo.domain.ai.dto.AiRes;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
+import java.util.List;
+
 public interface AiAnalysisService {
 
     AiRes.Analyze analyze(MultipartFile image, Long userId);
@@ -13,6 +16,8 @@ public interface AiAnalysisService {
     AiRes.ScanDetail getScan(Long scanId, Long userId);
 
     AiRes.Analyze getScanObjects(Long scanId, Long userId);
+
+    List<AiRes.ScanHistory> getScanHistory(Long userId, LocalDate startDate, LocalDate endDate);
 
     AiRes.ScanDetail getScanObject(Long scanId, String objectId, Long userId);
 

@@ -55,6 +55,14 @@ public final class AiRes {
     }
 
     @Builder
+    public record ScanHistory(Long scanResultId, String imageUrl, java.time.LocalDateTime scannedAt,
+                              List<ScanHistoryItem> items) {
+        @Builder
+        public record ScanHistoryItem(String objectId, ScanDetail.Category category, boolean isConfirmed,
+                                      Long decisionId, Boolean isPass) {}
+    }
+
+    @Builder
     public record ConfirmedResult(Long scanResultId, ScanDetail.Category category,
                                   List<Analyze.ChecklistResult> states, boolean isConfirmed, Long decisionId) {}
 

@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -157,6 +158,42 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             throw new IllegalStateException("저장된 AI 응답을 읽을 수 없습니다.", e);
         }
+    }
+
+    @Override
+    public List<AiRes.ScanHistory> getScanHistory(Long userId, LocalDate startDate, LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            throw new ProjectException(GeneralErrorCode.BAD_REQUEST, "시작일은 종료일보다 늦을 수 없습니다.");
+        }
+        return scanResultRepository
+                .findByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtDesc(
+                        userId, startDate.atStartOfDay(), endDate.plusDays(1).atStartOfDay())
+                .stream().map(this::scanHistory).toList();
+    }
+
+    private AiRes.ScanHistory scanHistory(ScanResult scan) {
+        List<AiScanResult> aiResults = aiScanResultRepository.findByScanResultIdOrderByCreatedAtAsc(scan.getId());
+        boolean legacySingleObject = aiResults.size() == 1;
+        List<AiRes.ScanHistory.ScanHistoryItem> items = aiResults.stream()
+                .map(ai -> {
+                    java.util.Optional<DisposalDecision> decision = legacySingleObject
+                            ? disposalDecisionRepository.findFirstByScanResultIdOrderByCreatedAtDesc(scan.getId())
+                            : disposalDecisionRepository.findFirstByScanResultIdAndObjectIdOrderByCreatedAtDesc(
+                                    scan.getId(), ai.getObjectId());
+                    Long categoryId = decision.map(DisposalDecision::getAppliedCategoryId)
+                            .orElse(ai.getAiCategoryId());
+                    TrashCategory category = trashCategoryRepository.findById(categoryId)
+                            .orElseThrow(() -> new CategoryNotFoundException(String.valueOf(categoryId)));
+                    String source = decision.map(DisposalDecision::getCategorySource).orElse("AI");
+                    BigDecimal confidence = categoryId.equals(ai.getAiCategoryId()) ? ai.getConfidence() : null;
+                    return AiRes.ScanHistory.ScanHistoryItem.builder()
+                            .objectId(ai.getObjectId()).category(category(category, confidence, source))
+                            .isConfirmed(decision.isPresent())
+                            .decisionId(decision.map(DisposalDecision::getId).orElse(null))
+                            .isPass(decision.map(DisposalDecision::getIsPass).orElse(null)).build();
+                }).toList();
+        return AiRes.ScanHistory.builder().scanResultId(scan.getId()).imageUrl(scan.getImageUrl())
+                .scannedAt(scan.getCreatedAt()).items(items).build();
     }
 
     @Override
