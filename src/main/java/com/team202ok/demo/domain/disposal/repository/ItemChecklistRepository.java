@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface ItemChecklistRepository extends JpaRepository<ItemChecklist, Long> {
     List<ItemChecklist> findByTrashCategoryIdOrderByDisplayOrder(Long trashCategoryId);
+
+    boolean existsByTrashCategoryIdAndCheckItemName(Long trashCategoryId, String checkItemName);
 }
