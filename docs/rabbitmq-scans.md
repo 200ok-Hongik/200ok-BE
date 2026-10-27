@@ -1,7 +1,5 @@
 # RabbitMQ 비동기 스캔
 
-다른 프로젝트의 음식 트렌드 분석 코드와 중복 클래스는 `reference-sources`에 보존했습니다. 실행 코드는 재활용 이미지 분석에 맞게 교체했습니다.
-
 - 로컬 브로커: `docker compose up -d rabbitmq`
 - 활성화: `RABBITMQ_ENABLED=true`. 기본값 false이므로 비활성화 상태에서는 분석 접수에 503을 반환합니다. 동기 분석 API는 없습니다.
 - `POST /api/ai/analysis`: 인증된 사용자의 multipart `image`를 받아 202와 jobId 반환.
