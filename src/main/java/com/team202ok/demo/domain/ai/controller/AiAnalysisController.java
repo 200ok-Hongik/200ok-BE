@@ -1,6 +1,7 @@
 package com.team202ok.demo.domain.ai.controller;
 
 import com.team202ok.demo.domain.rabbitmq.AnalysisJobService;
+import com.team202ok.demo.domain.ai.sse.AnalysisJobSseService;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/ai")
@@ -19,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class AiAnalysisController {
 
     private final AnalysisJobService analysisJobs;
+    private final AnalysisJobSseService jobEvents;
 
     @PostMapping(value = "/analysis", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "이미지 분석 접수", description = "작업을 저장하고 즉시 202와 jobId를 반환합니다. 완료 결과는 jobId로 조회합니다.")
@@ -37,6 +40,13 @@ public class AiAnalysisController {
     public AnalysisJobService.JobView getAnalysis(@PathVariable String jobId,
             @Parameter(hidden = true) @AuthenticationPrincipal Long userId) throws IOException {
         return analysisJobs.get(jobId, userId);
+    }
+
+    @GetMapping(value = "/analysis/{jobId}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "분석 작업 이벤트 구독", description = "작업 완료 또는 실패 이벤트를 SSE로 전달합니다.")
+    public SseEmitter subscribeAnalysis(@PathVariable String jobId,
+            @Parameter(hidden = true) @AuthenticationPrincipal Long userId) throws IOException {
+        return jobEvents.subscribe(jobId, userId);
     }
 
 }

@@ -33,11 +33,12 @@ public class AnalysisJobTransitions {
     }
 
     @Transactional
-    public void finish(String id, Instant claimTime, String result, String error) {
+    public boolean finish(String id, Instant claimTime, String result, String error) {
         var job = jobs.findLocked(id).orElseThrow();
         // An expired worker must not overwrite a newer attempt.
-        if (!"PROCESSING".equals(job.getStatus()) || !job.getUpdatedAt().equals(claimTime)) return;
+        if (!"PROCESSING".equals(job.getStatus()) || !job.getUpdatedAt().equals(claimTime)) return false;
         if (error == null) job.complete(result); else job.fail(error);
+        return true;
     }
 
     private boolean terminal(AnalysisJob job) {

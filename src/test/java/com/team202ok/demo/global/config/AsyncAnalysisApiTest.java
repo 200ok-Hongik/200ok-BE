@@ -1,6 +1,7 @@
 package com.team202ok.demo.global.config;
 
 import com.team202ok.demo.domain.rabbitmq.AnalysisJobService;
+import com.team202ok.demo.domain.ai.sse.AnalysisJobSseService;
 import com.team202ok.demo.global.auth.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,11 +10,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import static org.mockito.Mockito.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -22,6 +25,7 @@ class AsyncAnalysisApiTest {
     @Autowired MockMvc mvc;
     @Autowired RequestMappingHandlerMapping mappings;
     @MockitoBean AnalysisJobService jobs;
+    @MockitoBean AnalysisJobSseService jobEvents;
     @MockitoBean JwtTokenProvider tokens;
 
     @Test void disabledQueueReturns503InsteadOf500() throws Exception {
@@ -55,5 +59,21 @@ class AsyncAnalysisApiTest {
                 .flatMap(m -> m.getPatternValues().stream()).toList();
         assertThat(postPaths).contains("/api/ai/analysis")
                 .doesNotContain("/api/scans", "/api/scans/jobs");
+    }
+
+    @Test void opensAuthenticatedSseSubscription() throws Exception {
+        when(tokens.validateToken("test-token")).thenReturn(true);
+        when(tokens.isAccessToken("test-token")).thenReturn(true);
+        when(tokens.getUserId("test-token")).thenReturn(1L);
+        SseEmitter emitter = new SseEmitter();
+        emitter.send(SseEmitter.event().name("connected").data("job-123"));
+        when(jobEvents.subscribe("job-123", 1L)).thenReturn(emitter);
+
+        mvc.perform(get("/api/ai/analysis/job-123/events")
+                        .header("Authorization", "Bearer test-token")
+                        .accept(org.springframework.http.MediaType.TEXT_EVENT_STREAM))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(org.springframework.http.MediaType.TEXT_EVENT_STREAM))
+                .andExpect(request().asyncStarted());
     }
 }

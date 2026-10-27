@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 
@@ -17,6 +18,7 @@ public class RabbitMqConsumer {
     private final AnalysisJobTransitions transitions;
     private final AiAnalysisService analysis;
     private final ObjectMapper mapper;
+    private final ApplicationEventPublisher events;
 
     @RabbitListener(queues = RabbitMqConfig.QUEUE, concurrency = "1")
     public void consume(String jobId) {
@@ -36,7 +38,11 @@ public class RabbitMqConsumer {
                 log.error("AI job failed: {}", jobId, e);
                 error = "AI 분석에 실패했습니다. 서버 연결 상태를 확인한 후 다시 요청해 주세요.";
             }
-            transitions.finish(jobId, claimTime, resultJson, error);
+            boolean finished = transitions.finish(jobId, claimTime, resultJson, error);
+            if (finished) {
+                events.publishEvent(new AnalysisJobFinishedEvent(
+                        jobId, job.getUserId(), error == null ? "COMPLETED" : "FAILED"));
+            }
             log.info("AI job finished: jobId={}, status={}, processingMs={}", jobId,
                     error == null ? "COMPLETED" : "FAILED", (System.nanoTime() - started) / 1_000_000);
         }
