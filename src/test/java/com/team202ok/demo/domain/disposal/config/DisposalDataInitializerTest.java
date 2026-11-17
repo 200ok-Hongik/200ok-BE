@@ -62,6 +62,32 @@ class DisposalDataInitializerTest {
     }
 
     @Test
+    void registersGuideForExistingGeneralWasteCategory() {
+        TrashCategory category = mockCategory(1L, "일반쓰레기");
+        TrashCategory other = org.mockito.Mockito.mock(TrashCategory.class);
+        when(other.getId()).thenReturn(2L);
+        when(trashCategoryRepository.findByCode(any())).thenReturn(Optional.of(other));
+        when(trashCategoryRepository.findAll()).thenReturn(java.util.List.of(category));
+        when(disposalGuideRepository.findByTrashCategoryIdAndIsActiveTrue(2L))
+                .thenReturn(Optional.of(org.mockito.Mockito.mock(DisposalGuide.class)));
+
+        initializer.run();
+
+        ArgumentCaptor<DisposalGuide> guide = ArgumentCaptor.forClass(DisposalGuide.class);
+        verify(disposalGuideRepository).save(guide.capture());
+        assertThat(guide.getValue().getTrashCategoryId()).isEqualTo(1L);
+        assertThat(guide.getValue().getGuideMessage()).contains("종량제 봉투");
+        assertThat(guide.getValue().getCautionMessage()).contains("음식물쓰레기");
+    }
+
+    private TrashCategory mockCategory(Long id, String name) {
+        TrashCategory category = org.mockito.Mockito.mock(TrashCategory.class);
+        when(category.getId()).thenReturn(id);
+        when(category.getName()).thenReturn(name);
+        return category;
+    }
+
+    @Test
     void doesNotDuplicateExistingData() {
         TrashCategory category = org.mockito.Mockito.mock(TrashCategory.class);
         when(category.getId()).thenReturn(1L);

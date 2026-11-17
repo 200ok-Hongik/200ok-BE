@@ -315,15 +315,19 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
                         .dischargeTime("")
                         .build()
                 : registeredSchedule;
-        String message = decision.getGuideSnapshot();
-        if (registeredSchedule != null) {
-            message += (message.isBlank() ? "" : " 조치한 후, ") + registeredSchedule.dischargeDays()
-                    + " " + registeredSchedule.dischargeTime() + "에 배출해 주세요.";
-        }
-        if (message.isBlank()) message = NOT_REGISTERED_MESSAGE;
         String guideMessage = guide == null || guide.getGuideMessage() == null || guide.getGuideMessage().isBlank()
                 ? NOT_REGISTERED_MESSAGE
                 : guide.getGuideMessage();
+        String message = decision.getGuideSnapshot();
+        boolean hasSteps = message != null && !message.isBlank();
+        if (!hasSteps) {
+            message = guideMessage.equals(NOT_REGISTERED_MESSAGE) ? "" : guideMessage;
+        }
+        if (registeredSchedule != null) {
+            message += (message.isBlank() ? "" : hasSteps ? " 조치한 후, " : " ") + registeredSchedule.dischargeDays()
+                    + " " + registeredSchedule.dischargeTime() + "에 배출해 주세요.";
+        }
+        if (message.isBlank()) message = NOT_REGISTERED_MESSAGE;
         BigDecimal confidence = decisionConfidence(decision);
         return AiRes.DisposalGuideDetail.builder().decisionId(decision.getId()).scanResultId(scanId)
                 .category(category(category, confidence, decision.getCategorySource())).isPass(decision.getIsPass())

@@ -22,6 +22,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DisposalDataInitializer implements CommandLineRunner {
 
+    private static final CategorySeed GENERAL_WASTE = new CategorySeed(null,
+            "일반쓰레기는 물기를 제거하고 지역에서 지정한 종량제 봉투에 담아 배출해 주세요.",
+            "재활용품과 음식물쓰레기는 분리하고, 날카로운 물건은 다치지 않도록 감싸 지역 배출 기준에 따라 처리해 주세요.",
+            List.of());
+
     private static final List<CategorySeed> CATEGORY_SEEDS = List.of(
             new CategorySeed("CLEAR_PET_BOTTLE",
                     "상태에 따라 필요한 조치를 완료한 뒤 투명 페트병 전용 수거함에 배출해 주세요.",
@@ -106,6 +111,11 @@ public class DisposalDataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         CATEGORY_SEEDS.forEach(this::saveCategoryData);
+        // 기존 DB에서 다른 코드로 등록된 일반쓰레기 품목도 안내를 제공한다.
+        trashCategoryRepository.findAll().stream()
+                .filter(category -> category.getName() != null
+                        && category.getName().replace(" ", "").equals("일반쓰레기"))
+                .forEach(category -> saveGuideIfMissing(category.getId(), GENERAL_WASTE));
     }
 
     private void saveCategoryData(CategorySeed seed) {
