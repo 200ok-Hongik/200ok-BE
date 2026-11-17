@@ -51,7 +51,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           image="$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          docker build --tag "$image" --tag "$REGISTRY/$ECR_REPOSITORY:develop" .
+          docker build --provenance=false --tag "$image" --tag "$REGISTRY/$ECR_REPOSITORY:develop" .
           docker push "$image"
           docker push "$REGISTRY/$ECR_REPOSITORY:develop"
           echo "APP_IMAGE=$image" >> "$GITHUB_ENV"
