@@ -22,9 +22,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DisposalDataInitializer implements CommandLineRunner {
 
-    private static final CategorySeed GENERAL_WASTE = new CategorySeed(null,
-            "일반쓰레기는 물기를 제거하고 지역에서 지정한 종량제 봉투에 담아 배출해 주세요.",
-            "재활용품과 음식물쓰레기는 분리하고, 날카로운 물건은 다치지 않도록 감싸 지역 배출 기준에 따라 처리해 주세요.",
+    private static final CategorySeed GENERAL_WASTE = new CategorySeed("UNKNOWN",
+            "품목을 확인한 후 일반쓰레기에 해당하면 물기를 제거하고 지역에서 지정한 종량제 봉투에 담아 배출해 주세요.",
+            "인식이 정확하지 않을 수 있으니 재활용품, 음식물쓰레기 또는 별도 수거 대상인지 먼저 확인하고 지역 배출 기준을 따라주세요.",
             List.of());
 
     private static final List<CategorySeed> CATEGORY_SEEDS = List.of(
@@ -101,7 +101,8 @@ public class DisposalDataInitializer implements CommandLineRunner {
                             step("hasLabel", "상표를 제거하세요", 1, "true"),
                             step("hasTape", "테이프 등 부착물을 제거하세요", 2, "true"),
                             step("isContaminated", "내용물과 이물질을 완전히 제거하세요", 3, "true")
-                    ))
+                    )),
+            GENERAL_WASTE
     );
 
     private final TrashCategoryRepository trashCategoryRepository;
@@ -111,11 +112,6 @@ public class DisposalDataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         CATEGORY_SEEDS.forEach(this::saveCategoryData);
-        // 기존 DB에서 다른 코드로 등록된 일반쓰레기 품목도 안내를 제공한다.
-        trashCategoryRepository.findAll().stream()
-                .filter(category -> category.getName() != null
-                        && category.getName().replace(" ", "").equals("일반쓰레기"))
-                .forEach(category -> saveGuideIfMissing(category.getId(), GENERAL_WASTE));
     }
 
     private void saveCategoryData(CategorySeed seed) {

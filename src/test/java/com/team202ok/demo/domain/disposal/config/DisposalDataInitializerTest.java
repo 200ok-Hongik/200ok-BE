@@ -58,16 +58,17 @@ class DisposalDataInitializerTest {
                         org.assertj.core.groups.Tuple.tuple("hasStraw", "true", "빨대를 분리하세요", 2),
                         org.assertj.core.groups.Tuple.tuple("isFlattened", "false", "물기를 말린 뒤 펼치거나 압착하세요", 5),
                         org.assertj.core.groups.Tuple.tuple("hasLabel", "true", "상표를 제거하세요", 1));
-        verify(disposalGuideRepository, org.mockito.Mockito.times(8)).save(any(DisposalGuide.class));
+        verify(disposalGuideRepository, org.mockito.Mockito.times(9)).save(any(DisposalGuide.class));
     }
 
     @Test
     void registersGuideForExistingGeneralWasteCategory() {
-        TrashCategory category = mockCategory(1L, "일반쓰레기");
+        TrashCategory category = org.mockito.Mockito.mock(TrashCategory.class);
+        when(category.getId()).thenReturn(1L);
         TrashCategory other = org.mockito.Mockito.mock(TrashCategory.class);
         when(other.getId()).thenReturn(2L);
         when(trashCategoryRepository.findByCode(any())).thenReturn(Optional.of(other));
-        when(trashCategoryRepository.findAll()).thenReturn(java.util.List.of(category));
+        when(trashCategoryRepository.findByCode("UNKNOWN")).thenReturn(Optional.of(category));
         when(disposalGuideRepository.findByTrashCategoryIdAndIsActiveTrue(2L))
                 .thenReturn(Optional.of(org.mockito.Mockito.mock(DisposalGuide.class)));
 
@@ -78,13 +79,6 @@ class DisposalDataInitializerTest {
         assertThat(guide.getValue().getTrashCategoryId()).isEqualTo(1L);
         assertThat(guide.getValue().getGuideMessage()).contains("종량제 봉투");
         assertThat(guide.getValue().getCautionMessage()).contains("음식물쓰레기");
-    }
-
-    private TrashCategory mockCategory(Long id, String name) {
-        TrashCategory category = org.mockito.Mockito.mock(TrashCategory.class);
-        when(category.getId()).thenReturn(id);
-        when(category.getName()).thenReturn(name);
-        return category;
     }
 
     @Test
