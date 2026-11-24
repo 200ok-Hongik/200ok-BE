@@ -36,6 +36,14 @@ public class S3ImageUploader implements ImageUploader {
 
     @Override
     public String upload(MultipartFile file) {
+        return upload(file, "scans");
+    }
+
+    public String uploadProfileImage(MultipartFile file) {
+        return upload(file, "profile-images");
+    }
+
+    private String upload(MultipartFile file, String prefix) {
         String contentType = file.getContentType() == null
                 ? ""
                 : file.getContentType().toLowerCase(Locale.ROOT);
@@ -43,30 +51,30 @@ public class S3ImageUploader implements ImageUploader {
             throw new IllegalArgumentException("JPEG, PNG 또는 WebP 이미지가 필요합니다.");
         }
 
-        String key = createKey(contentType);
+        String key = createKey(prefix, contentType);
         PutObjectRequest request = PutObjectRequest.builder()
                 .bucket(bucket)
                 .key(key)
                 .contentType(contentType)
                 .contentLength(file.getSize())
                 .build();
-        try {
-            s3Client.putObject(request, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+        try (var input = file.getInputStream()) {
+            s3Client.putObject(request, RequestBody.fromInputStream(input, file.getSize()));
         } catch (IOException e) {
             throw new IllegalStateException("이미지를 읽을 수 없습니다.", e);
         }
         return URI.create(publicBaseUrl + "/" + key).toString();
     }
 
-    private String createKey(String contentType) {
+    private String createKey(String prefix, String contentType) {
         String extension = switch (contentType) {
             case "image/png" -> ".png";
             case "image/webp" -> ".webp";
             default -> ".jpg";
         };
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        return "scans/%d/%02d/%02d/%s%s".formatted(
-                today.getYear(), today.getMonthValue(), today.getDayOfMonth(), UUID.randomUUID(), extension);
+        return "%s/%d/%02d/%02d/%s%s".formatted(
+                prefix, today.getYear(), today.getMonthValue(), today.getDayOfMonth(), UUID.randomUUID(), extension);
     }
 
     private static String stripTrailingSlash(String value) {

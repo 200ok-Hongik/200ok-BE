@@ -1,5 +1,6 @@
 package com.team202ok.demo.domain.user.service;
 
+import com.team202ok.demo.domain.ai.service.S3ImageUploader;
 import com.team202ok.demo.domain.region.entity.Region;
 import com.team202ok.demo.domain.region.repository.RegionRepository;
 import com.team202ok.demo.domain.user.dto.UserRes;
@@ -9,7 +10,9 @@ import com.team202ok.demo.global.exception.code.GeneralErrorCode;
 import com.team202ok.demo.global.exception.custom.ProjectException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +20,7 @@ import org.springframework.stereotype.Service;
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RegionRepository regionRepository;
+    private final ObjectProvider<S3ImageUploader> imageUploader;
 
     @Override
     public UserRes.Profile updateRegion(Long userId, Long regionId) {
@@ -32,6 +36,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserRes.Profile getProfile(Long userId) {
         User user = findUser(userId);
+        return toProfile(user);
+    }
+
+    private UserRes.Profile toProfile(User user) {
         UserRes.Region region = user.getRegionCode() == null ? null : regionRepository.findByRegionCode(user.getRegionCode())
                 .map(r -> new UserRes.Region(r.getId(), r.getSido(), r.getGugun(), r.getDong())).orElse(null);
         return new UserRes.Profile(user.getId(), user.getName(), user.getProfileImageUrl(), region,
@@ -43,6 +51,28 @@ public class UserServiceImpl implements UserService {
         User user = findUser(userId);
         user.updateProfile(request.name(), request.profileImageUrl());
         return getProfile(userId);
+    }
+
+    @Override
+    public UserRes.Profile updateProfileImage(Long userId, MultipartFile image) {
+        if (image == null || image.isEmpty()) {
+            throw new ProjectException(GeneralErrorCode.BAD_REQUEST, "프로필 사진 파일이 필요합니다.");
+        }
+
+        User user = findUser(userId);
+        S3ImageUploader uploader = imageUploader.getIfAvailable();
+        if (uploader == null) {
+            throw new ProjectException(GeneralErrorCode.SERVICE_UNAVAILABLE, "프로필 사진 저장소를 사용할 수 없습니다.");
+        }
+
+        String imageUrl;
+        try {
+            imageUrl = uploader.uploadProfileImage(image);
+        } catch (IllegalArgumentException e) {
+            throw new ProjectException(GeneralErrorCode.BAD_REQUEST, e.getMessage());
+        }
+        user.updateProfile(null, imageUrl);
+        return toProfile(user);
     }
 
     @Override

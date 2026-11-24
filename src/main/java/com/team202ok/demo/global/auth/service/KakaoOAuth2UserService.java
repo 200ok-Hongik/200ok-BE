@@ -35,7 +35,7 @@ public class KakaoOAuth2UserService extends DefaultOAuth2UserService {
 
         User user = userRepository.findByKakaoId(kakaoId)
                 .map(existing -> {
-                    existing.updateProfile(nickname, profileImageUrl);
+                    existing.updateProfile(nickname, existing.getProfileImageUrl() == null ? profileImageUrl : null);
                     return existing;
                 })
                 .orElseGet(() -> userRepository.save(User.builder()
