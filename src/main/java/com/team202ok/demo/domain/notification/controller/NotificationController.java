@@ -48,7 +48,7 @@ public class NotificationController {
     }
 
     @PostMapping("/test")
-    @Operation(summary = "테스트 푸시 발송", description = "등록된 기기로 개발용 분리배출 알림을 발송합니다. 현재 fake 모드에서는 서버 로그로 확인합니다.")
+    @Operation(summary = "테스트 푸시 발송", description = "등록된 기기로 개발용 분리배출 알림을 발송합니다. 발송에 성공한 기기 수를 반환합니다. fake 모드에서는 시뮬레이션 결과를 반환합니다.")
     public int sendTestPush(@Parameter(hidden = true) @AuthenticationPrincipal Long userId, @RequestBody(required = false) TestPushReq request) {
         return notificationService.sendTestPush(userId, request == null ? null : request.itemName());
     }
