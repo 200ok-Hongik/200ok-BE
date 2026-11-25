@@ -7,10 +7,10 @@ import com.team202ok.demo.domain.calendar.repository.UserCalendarRepository;
 import com.team202ok.demo.domain.ai.entity.ScanResult;
 import com.team202ok.demo.domain.ai.repository.ScanResultRepository;
 import com.team202ok.demo.domain.disposal.entity.DisposalDecision;
+import com.team202ok.demo.domain.disposal.entity.TrashCategory;
 import com.team202ok.demo.domain.disposal.repository.DisposalDecisionRepository;
 import com.team202ok.demo.domain.disposal.repository.TrashCategoryRepository;
-import com.team202ok.demo.domain.region.entity.RegionSchedule;
-import com.team202ok.demo.domain.region.repository.RegionScheduleRepository;
+import com.team202ok.demo.domain.region.service.RegionDischargeService;
 import com.team202ok.demo.domain.user.entity.User;
 import com.team202ok.demo.domain.user.repository.UserRepository;
 import com.team202ok.demo.global.exception.code.GeneralErrorCode;
@@ -21,11 +21,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.DayOfWeek;
-import java.util.Arrays;
-import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.List;
 
 @Service
@@ -36,7 +31,7 @@ public class CalendarServiceImpl implements CalendarService {
     private final DisposalDecisionRepository disposalDecisionRepository;
     private final TrashCategoryRepository trashCategoryRepository;
     private final UserRepository userRepository;
-    private final RegionScheduleRepository regionScheduleRepository;
+    private final RegionDischargeService regionDischargeService;
     private final ScanResultRepository scanResultRepository;
 
     @Override
@@ -48,7 +43,8 @@ public class CalendarServiceImpl implements CalendarService {
         if (!scan.getUserId().equals(userId)) {
             throw new ProjectException(GeneralErrorCode.FORBIDDEN);
         }
-        LocalDateTime scheduledAt = request.scheduledAt() != null ? request.scheduledAt() : nextSchedule(userId);
+        LocalDateTime scheduledAt = request.scheduledAt() != null
+                ? request.scheduledAt() : nextSchedule(userId, decision.getAppliedCategoryId());
         return toResponse(userCalendarRepository.save(UserCalendar.builder()
                 .userId(userId).disposalDecisionId(decision.getId()).trashCategoryId(decision.getAppliedCategoryId())
                 .scheduledAt(scheduledAt).build()));
@@ -90,33 +86,13 @@ public class CalendarServiceImpl implements CalendarService {
                 categoryName, calendar.getScheduledAt(), calendar.getIsCompleted());
     }
 
-    private LocalDateTime nextSchedule(Long userId) {
+    private LocalDateTime nextSchedule(Long userId, Long categoryId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ProjectException(GeneralErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다."));
         if (user.getRegionCode() == null) throw new ProjectException(GeneralErrorCode.BAD_REQUEST, "기본 배출 지역을 먼저 설정해 주세요.");
-        RegionSchedule schedule = regionScheduleRepository.findByRegionCode(user.getRegionCode())
+        String categoryCode = trashCategoryRepository.findById(categoryId).map(TrashCategory::getCode).orElse(null);
+        RegionDischargeService.Schedule schedule = regionDischargeService.findSchedule(user.getRegionCode(), categoryCode)
                 .orElseThrow(() -> new ProjectException(GeneralErrorCode.NOT_FOUND, "지역 배출 일정을 찾을 수 없습니다."));
-        Set<DayOfWeek> days = Arrays.stream(schedule.getDischargeDays().split(","))
-                .map(String::trim).map(this::toDayOfWeek).collect(Collectors.toSet());
-        LocalTime startTime = LocalTime.parse(schedule.getDischargeTime().split("~")[0]);
-        LocalDateTime now = LocalDateTime.now();
-        for (int offset = 0; offset <= 7; offset++) {
-            LocalDateTime candidate = now.toLocalDate().plusDays(offset).atTime(startTime);
-            if (days.contains(candidate.getDayOfWeek()) && candidate.isAfter(now)) return candidate;
-        }
-        throw new ProjectException(GeneralErrorCode.BAD_REQUEST, "지역 배출 요일 형식이 올바르지 않습니다.");
-    }
-
-    private DayOfWeek toDayOfWeek(String day) {
-        return switch (day) {
-            case "월" -> DayOfWeek.MONDAY;
-            case "화" -> DayOfWeek.TUESDAY;
-            case "수" -> DayOfWeek.WEDNESDAY;
-            case "목" -> DayOfWeek.THURSDAY;
-            case "금" -> DayOfWeek.FRIDAY;
-            case "토" -> DayOfWeek.SATURDAY;
-            case "일" -> DayOfWeek.SUNDAY;
-            default -> throw new ProjectException(GeneralErrorCode.BAD_REQUEST, "알 수 없는 배출 요일입니다: " + day);
-        };
+        return schedule.nextOccurrence(regionDischargeService.now());
     }
 }

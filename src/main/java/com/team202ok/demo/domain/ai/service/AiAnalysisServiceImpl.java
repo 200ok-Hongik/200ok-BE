@@ -6,7 +6,6 @@ import com.team202ok.demo.domain.ai.dto.AiRes;
 import com.team202ok.demo.domain.ai.entity.*;
 import com.team202ok.demo.domain.disposal.entity.*;
 import com.team202ok.demo.domain.feedback.entity.*;
-import com.team202ok.demo.domain.region.entity.RegionSchedule;
 import com.team202ok.demo.domain.user.entity.User;
 import com.team202ok.demo.global.exception.code.GeneralErrorCode;
 import com.team202ok.demo.global.exception.custom.CategoryNotFoundException;
@@ -15,7 +14,7 @@ import com.team202ok.demo.global.exception.custom.UserNotFoundException;
 import com.team202ok.demo.domain.ai.repository.*;
 import com.team202ok.demo.domain.disposal.repository.*;
 import com.team202ok.demo.domain.feedback.repository.*;
-import com.team202ok.demo.domain.region.repository.RegionScheduleRepository;
+import com.team202ok.demo.domain.region.service.RegionDischargeService;
 import com.team202ok.demo.domain.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -55,7 +54,7 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
     private final DisposalDecisionRepository disposalDecisionRepository;
     private final DisposalDecisionDetailRepository disposalDecisionDetailRepository;
     private final DisposalGuideRepository disposalGuideRepository;
-    private final RegionScheduleRepository regionScheduleRepository;
+    private final RegionDischargeService regionDischargeService;
 
     @Override
     @Transactional(Transactional.TxType.NOT_SUPPORTED)
@@ -302,19 +301,12 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
                         .statusValue(statuses.get(c.getId())).guideMessage(c.getGuideMessage())
                         .isSatisfied(!c.isApplicable(statuses.get(c.getId()))).build()).toList();
         User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
-        AiRes.FinalGuide.ScheduleInfo registeredSchedule = user.getRegionCode() == null ? null
-                : regionScheduleRepository.findByRegionCode(user.getRegionCode())
-                        .map(s -> AiRes.FinalGuide.ScheduleInfo.builder()
-                                .dischargeDays(s.getDischargeDays())
-                                .dischargeTime(s.getDischargeTime())
-                                .build())
-                        .orElse(null);
-        AiRes.FinalGuide.ScheduleInfo schedule = registeredSchedule == null
-                ? AiRes.FinalGuide.ScheduleInfo.builder()
-                        .dischargeDays(NOT_REGISTERED_MESSAGE)
-                        .dischargeTime("")
-                        .build()
-                : registeredSchedule;
+        RegionDischargeService.Schedule rule = user.getRegionCode() == null ? null
+                : regionDischargeService.findSchedule(user.getRegionCode(), category.getCode()).orElse(null);
+        AiRes.FinalGuide.ScheduleInfo schedule = rule == null
+                ? new AiRes.FinalGuide.ScheduleInfo(NOT_REGISTERED_MESSAGE, "")
+                : new AiRes.FinalGuide.ScheduleInfo(rule.dischargeDays(),
+                        rule.dischargeTimeOn(rule.nextOccurrence(regionDischargeService.now()).toLocalDate()));
         String guideMessage = guide == null || guide.getGuideMessage() == null || guide.getGuideMessage().isBlank()
                 ? NOT_REGISTERED_MESSAGE
                 : guide.getGuideMessage();
@@ -323,15 +315,22 @@ public class AiAnalysisServiceImpl implements AiAnalysisService {
         if (!hasSteps) {
             message = guideMessage.equals(NOT_REGISTERED_MESSAGE) ? "" : guideMessage;
         }
-        if (registeredSchedule != null) {
-            message += (message.isBlank() ? "" : hasSteps ? " 조치한 후, " : " ") + registeredSchedule.dischargeDays()
-                    + " " + registeredSchedule.dischargeTime() + "에 배출해 주세요.";
+        if (rule != null) {
+            message += (message.isBlank() ? "" : hasSteps ? " 조치한 후, " : " ")
+                    + (rule.mapoCurbside() ? "문전수거 기준 " : "")
+                    + schedule.dischargeDays() + " " + schedule.dischargeTime() + "에 배출해 주세요.";
+        }
+        String cautionMessage = guide == null ? NOT_REGISTERED_MESSAGE : guide.getCautionMessage();
+        if (rule != null && rule.mapoCurbside()) {
+            String apartmentNotice = "공동주택은 단지별 배출 요일과 지정 장소를 확인해 주세요.";
+            cautionMessage = cautionMessage == null || cautionMessage.isBlank() || cautionMessage.equals(NOT_REGISTERED_MESSAGE)
+                    ? apartmentNotice : cautionMessage + " " + apartmentNotice;
         }
         if (message.isBlank()) message = NOT_REGISTERED_MESSAGE;
         BigDecimal confidence = decisionConfidence(decision);
         return AiRes.DisposalGuideDetail.builder().decisionId(decision.getId()).scanResultId(scanId)
                 .category(category(category, confidence, decision.getCategorySource())).isPass(decision.getIsPass())
-                .guideMessage(guideMessage).cautionMessage(guide == null ? NOT_REGISTERED_MESSAGE : guide.getCautionMessage())
+                .guideMessage(guideMessage).cautionMessage(cautionMessage)
                 .checkItems(items).schedule(schedule).finalGuideMessage(message).build();
     }
 
